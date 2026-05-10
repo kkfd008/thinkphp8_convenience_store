@@ -202,12 +202,19 @@ $('#btn-checkout').on('click', function(){
     }, function(res){
         layer.close(loading);
         if (res.code === 0) {
-            layer.alert('结算成功！订单号：' + res.data.order_no, {icon: 1}, function(){
-                cart = [];
-                selectedMember = null;
-                $('#selected-member').html('');
-                $('input[name=pay_type][value=1]').prop('checked', true);
-                renderCart();
+            layer.open({
+                title: '结算成功',
+                content: '订单号：' + res.data.order_no,
+                icon: 1,
+                btn: ['确定'],
+                yes: function(idx){
+                    cart = [];
+                    selectedMember = null;
+                    $('#selected-member').html('');
+                    $('input[name=pay_type][value=1]').prop('checked', true);
+                    renderCart();
+                    layer.close(idx);
+                }
             });
         } else {
             layer.msg(res.msg, {icon: 2});
@@ -233,14 +240,19 @@ layui.use(['table'], function(){
     });
 
     table.on('tool(cartTable)', function(obj){
+        var barcode = obj.data.barcode;
         if (obj.event === 'del') {
-            var index = cart.indexOf(obj.data);
-            if (index > -1) { cart.splice(index, 1); renderCart(); }
+            cart = cart.filter(function(c){ return c.barcode !== barcode; });
+            renderCart();
         } else if (obj.event === 'minus') {
-            if (obj.data.quantity > 1) { obj.data.quantity--; renderCart(); }
+            var found = cart.find(function(c){ return c.barcode === barcode; });
+            if (found && found.quantity > 1) { found.quantity--; renderCart(); }
         } else if (obj.event === 'plus') {
-            if (obj.data.quantity < obj.data.stock) { obj.data.quantity++; renderCart(); }
-            else { layer.msg('库存不足，当前库存：' + obj.data.stock); }
+            var found = cart.find(function(c){ return c.barcode === barcode; });
+            if (found) {
+                if (found.quantity < found.stock) { found.quantity++; renderCart(); }
+                else { layer.msg('库存不足，当前库存：' + found.stock); }
+            }
         }
     });
 });

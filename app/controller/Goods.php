@@ -24,12 +24,14 @@ class Goods extends BaseController
                   ->whereOr('cate', 'like', "%{$keyword}%");
             });
         }
-        if ($cate !== '') {
+        if ($cate === '_none_') {
+            $query->where('cate', '');
+        } elseif ($cate !== '') {
             $query->where('cate', $cate);
         }
         $list = $query->order('id desc')->select()->toArray();
 
-        $cates = Db::name('goods_cate')->order('id asc')->select()->toArray();
+        $cates = Db::name('goods_cate')->where('status', 1)->order('id asc')->select()->toArray();
 
         View::assign(array_merge($this->assignAdminUser(), [
             'menus'    => $this->getMenus(),
@@ -175,22 +177,29 @@ class Goods extends BaseController
         if ($exist) {
             return $this->jsonError('该分类已存在');
         }
-        Db::name('goods_cate')->insert(['name' => $name, 'create_time' => time()]);
+        Db::name('goods_cate')->insert(['name' => $name, 'status' => 1, 'create_time' => time()]);
         return $this->jsonSuccess([], '新增成功');
     }
 
-    public function cateDelete()
+    public function cateEdit()
     {
+        $id   = intval($this->request->post('id', 0));
         $name = $this->request->post('name', '');
-        if (empty($name)) {
-            return $this->jsonError('参数错误');
-        }
-        $count = Db::name('goods')->where('cate', $name)->count();
-        if ($count > 0) {
-            return $this->jsonError("该分类下有 {$count} 个商品，不可删除");
-        }
-        Db::name('goods_cate')->where('name', $name)->delete();
-        return $this->jsonSuccess([], '删除成功');
+        if ($id <= 0) return $this->jsonError('参数错误');
+        if (empty($name)) return $this->jsonError('分类名称不能为空');
+        $exist = Db::name('goods_cate')->where('name', $name)->where('id', '<>', $id)->find();
+        if ($exist) return $this->jsonError('该分类已存在');
+        Db::name('goods_cate')->where('id', $id)->update(['name' => $name]);
+        return $this->jsonSuccess([], '修改成功');
+    }
+
+    public function cateToggle()
+    {
+        $id     = intval($this->request->post('id', 0));
+        $status = intval($this->request->post('status', 1));
+        if ($id <= 0) return $this->jsonError('参数错误');
+        Db::name('goods_cate')->where('id', $id)->update(['status' => $status]);
+        return $this->jsonSuccess([], $status == 1 ? '已显示' : '已隐藏');
     }
 
     public function import()
@@ -263,6 +272,18 @@ class Goods extends BaseController
             'fail'    => count($failList),
             'details' => $failList,
         ], "导入完成：成功 {$successCount} 条，失败 " . count($failList) . " 条");
+    }
+
+    public function batchCate()
+    {
+        $ids  = json_decode($this->request->post('ids', '[]'), true);
+        $cate = $this->request->post('cate', '');
+
+        if (empty($ids)) return $this->jsonError('请选择商品');
+        if ($cate === '') return $this->jsonError('请选择分类');
+
+        Db::name('goods')->where('id', 'in', $ids)->update(['cate' => $cate]);
+        return $this->jsonSuccess([], "已将 " . count($ids) . " 个商品分类修改为「{$cate}」");
     }
 
     public function downloadTemplate()

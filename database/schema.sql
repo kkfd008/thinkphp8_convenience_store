@@ -144,6 +144,7 @@ DROP TABLE IF EXISTS goods_cate;
 CREATE TABLE goods_cate (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(50) NOT NULL DEFAULT '',
+    status TINYINT DEFAULT 1,
     create_time INTEGER DEFAULT 0
 );
 

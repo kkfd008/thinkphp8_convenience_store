@@ -7,6 +7,7 @@
     <div class="layui-inline">
         <select id="search-cate">
             <option value="">全部分类</option>
+            <option value="_none_" {if isset($cate) && $cate==='_none_'}selected{/if}>无分类</option>
             {foreach $cateList as $c}
             <option value="{$c.name}" {if isset($cate) && $cate===$c.name}selected{/if}>{$c.name}</option>
             {/foreach}
@@ -15,11 +16,12 @@
     <div class="layui-inline">
         <button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button>
     </div>
-    <div class="layui-inline layui-right">
+    <div class="btn-group-right">
         <button class="layui-btn layui-btn-primary" onclick="openEdit()"><i class="layui-icon layui-icon-add-1"></i> 新增商品</button>
         <button class="layui-btn layui-btn-primary" onclick="openImport()"><i class="layui-icon layui-icon-upload-drag"></i> Excel导入</button>
         <button class="layui-btn layui-btn-primary" onclick="downloadTemplate()"><i class="layui-icon layui-icon-download-circle"></i> 下载模板</button>
         <button class="layui-btn layui-btn-primary" onclick="exportData()"><i class="layui-icon layui-icon-export"></i> 导出</button>
+        <button class="layui-btn layui-btn-normal" id="btn-batch-cate">批量改分类</button>
     </div>
 </div>
 <table id="goods-table" lay-filter="goodsTable"></table>
@@ -34,6 +36,7 @@
 <script>
 var goodsList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
 var goodsCateList = {:json_encode($cateList, JSON_UNESCAPED_UNICODE)};
+var selectedIds = {};
 
 layui.use(['table', 'upload', 'form'], function(){
     var table = layui.table;
@@ -41,6 +44,7 @@ layui.use(['table', 'upload', 'form'], function(){
         elem: '#goods-table',
         data: goodsList,
         cols: [[
+            {type: 'checkbox'},
             {field: 'id', title: 'ID', width: 60},
             {field: 'name', title: '名称', width: 140},
             {field: 'barcode', title: '条码', width: 130},
@@ -58,6 +62,26 @@ layui.use(['table', 'upload', 'form'], function(){
         page: false
     });
 
+    table.on('checkbox(goodsTable)', function(obj){
+        if (obj.type === 'all') {
+            var allChecked = obj.checked;
+            var currentData = layui.table.cache['goodsTable'] || goodsList;
+            if (allChecked) {
+                currentData.forEach(function(d){ selectedIds[d.id] = true; });
+            } else {
+                selectedIds = {};
+            }
+        } else if (obj.data && obj.data.id) {
+            if (obj.checked) {
+                selectedIds[obj.data.id] = true;
+            } else {
+                delete selectedIds[obj.data.id];
+            }
+        }
+        var count = Object.keys(selectedIds).length;
+        $('#btn-batch-cate').text('批量改分类' + (count > 0 ? '（' + count + '）' : ''));
+    });
+
     table.on('tool(goodsTable)', function(obj){
         if (obj.event === 'edit') openEdit(obj.data);
         else if (obj.event === 'del') {
@@ -68,6 +92,35 @@ layui.use(['table', 'upload', 'form'], function(){
                 });
                 layer.close(index);
             });
+        }
+    });
+});
+
+$('#btn-batch-cate').on('click', function(){
+    var ids = Object.keys(selectedIds);
+    if (ids.length === 0) { layer.msg('请勾选商品'); return; }
+    var cateOpts = goodsCateList.map(function(c){ return '<option value="' + c.name + '">' + c.name + '</option>'; }).join('');
+    var html = '<div style="padding:20px;">\
+        <div class="layui-form-item"><label class="layui-form-label">目标分类</label><div class="layui-input-block"><select id="batch-cate-select">' + cateOpts + '</select></div></div>\
+        <div style="color:#999;margin-top:8px;">已选中 <strong>' + ids.length + '</strong> 个商品</div>\
+    </div>';
+    layer.open({
+        type: 1, title: '批量修改分类', area: ['420px', '220px'], content: html,
+        btn: ['确定', '取消'],
+        yes: function(index, layero){
+            var cate = $(layero).find('#batch-cate-select').val();
+            if (!cate) { layer.msg('请选择分类'); return; }
+            var loading = layer.load();
+            $.post('/goods/batchCate', {ids: JSON.stringify(ids.map(Number)), cate: cate}, function(res){
+                layer.close(loading);
+                if (res.code === 0) {
+                    layer.msg(res.msg, {icon:1});
+                    setTimeout(function(){ location.reload(); }, 500);
+                } else {
+                    layer.msg(res.msg, {icon:2});
+                }
+            });
+            layer.close(index);
         }
     });
 });

@@ -1,12 +1,17 @@
 {extend name="layout" /}
 {block name="content"}
 <div class="toolbar">
-    <button class="layui-btn layui-btn-primary" onclick="openCateEdit()"><i class="layui-icon layui-icon-add-1"></i> 新增分类</button>
+    <button class="layui-btn layui-btn-primary" onclick="openCateAdd()"><i class="layui-icon layui-icon-add-1"></i> 新增分类</button>
 </div>
 <table id="cate-table" lay-filter="cateTable"></table>
 
 <script type="text/html" id="toolbar">
-    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+    <a class="layui-btn layui-btn-xs" lay-event="edit">修改</a>
+    {{# if(d.status == 1) { }}
+    <a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="hide">隐藏</a>
+    {{# } else { }}
+    <a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="show">显示</a>
+    {{# } }}
 </script>
 {/block}
 
@@ -14,34 +19,38 @@
 <script>
 var cateList = {:json_encode($cateList, JSON_UNESCAPED_UNICODE)};
 
-var tableData = cateList;
-
 layui.use(['table'], function(){
     var table = layui.table;
     table.render({
         elem: '#cate-table',
-        data: tableData,
+        data: cateList,
         cols: [[
             {field: 'id', title: 'ID', width: 80},
             {field: 'name', title: '分类名称'},
-            {title: '操作', toolbar: '#toolbar', width: 100}
+            {field: 'status', title: '状态', width: 80, templet: function(d){ return d.status == 1 ? '<span style="color:#009688;">显示</span>' : '<span style="color:#999;">隐藏</span>'; }},
+            {title: '操作', toolbar: '#toolbar', width: 150}
         ]],
         page: false
     });
 
     table.on('tool(cateTable)', function(obj){
-        if (obj.event === 'del') {
-            layer.confirm('确认删除该分类？', function(index){
-                $.post('/goods/cateDelete', {name: obj.data.name}, function(res){
-                    if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
-                    else layer.msg(res.msg, {icon:2});
-                });
+        if (obj.event === 'edit') {
+            openCateEdit(obj.data);
+        } else if (obj.event === 'hide') {
+            $.post('/goods/cateToggle', {id: obj.data.id, status: 0}, function(res){
+                if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                else layer.msg(res.msg, {icon:2});
+            });
+        } else if (obj.event === 'show') {
+            $.post('/goods/cateToggle', {id: obj.data.id, status: 1}, function(res){
+                if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                else layer.msg(res.msg, {icon:2});
             });
         }
     });
 });
 
-window.openCateEdit = function(){
+window.openCateAdd = function(){
     var html = '<div style="padding:20px;"><div class="layui-form-item"><label class="layui-form-label">分类名称</label><div class="layui-input-block"><input type="text" name="name" class="layui-input"></div></div></div>';
     layer.open({
         type: 1, title: '新增分类', area: ['400px', '180px'], content: html,
@@ -50,6 +59,23 @@ window.openCateEdit = function(){
             var name = layui.$(layero).find('[name=name]').val();
             if (!name) { layer.msg('请输入分类名称'); return; }
             $.post('/goods/cateAdd', {name: name}, function(res){
+                if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                else layer.msg(res.msg, {icon:2});
+            });
+            layer.close(index);
+        }
+    });
+};
+
+window.openCateEdit = function(data){
+    var html = '<div style="padding:20px;"><div class="layui-form-item"><label class="layui-form-label">分类名称</label><div class="layui-input-block"><input type="text" name="name" value="' + data.name + '" class="layui-input"></div></div></div>';
+    layer.open({
+        type: 1, title: '修改分类', area: ['400px', '180px'], content: html,
+        btn: ['保存'],
+        yes: function(index, layero){
+            var name = layui.$(layero).find('[name=name]').val();
+            if (!name) { layer.msg('请输入分类名称'); return; }
+            $.post('/goods/cateEdit', {id: data.id, name: name}, function(res){
                 if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
                 else layer.msg(res.msg, {icon:2});
             });
