@@ -45,9 +45,9 @@ layui.use(['table', 'upload', 'form'], function(){
         data: goodsList,
         cols: [[
             {type: 'checkbox'},
-            {field: 'id', title: 'ID', width: 60},
-            {field: 'name', title: '名称', width: 140},
-            {field: 'barcode', title: '条码', width: 130},
+            {field: 'id', title: 'ID', width: 240},
+            {field: 'name', title: '名称', width: 260},
+            {field: 'barcode', title: '条码', width: 150},
             {field: 'unit', title: '单位', width: 60},
             {field: 'box_spec', title: '箱规', width: 60, templet: function(d){ return d.box_spec ? d.box_spec : '-'; }},
             {field: 'purchase_price', title: '进货价', width: 80},
