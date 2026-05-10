@@ -1,0 +1,97 @@
+{extend name="layout" /}
+{block name="content"}
+<div class="toolbar">
+    <button class="layui-btn layui-btn-primary" onclick="openRoleEdit()"><i class="layui-icon layui-icon-add-1"></i> 新增角色</button>
+</div>
+<table id="role-table" lay-filter="roleTable"></table>
+
+<script type="text/html" id="roleToolbar">
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+</script>
+{/block}
+
+{block name="script"}
+<script>
+var roles = {:json_encode($roles, JSON_UNESCAPED_UNICODE)};
+var ruleTree = {:json_encode($ruleTree, JSON_UNESCAPED_UNICODE)};
+
+function buildTreeHtml(nodes, checkedIds, prefix) {
+    prefix = prefix || '';
+    var html = '';
+    nodes.forEach(function(node){
+        var checked = checkedIds.indexOf(String(node.id)) !== -1;
+        html += '<div style="margin-left:' + (prefix ? '20px' : '0') + '">';
+        html += '<input type="checkbox" name="rule_' + node.id + '" value="' + node.id + '" lay-skin="primary" title="' + node.title + '"' + (checked ? ' checked' : '') + '>';
+        if (node.children && node.children.length > 0) {
+            html += buildTreeHtml(node.children, checkedIds, prefix + ' ');
+        }
+        html += '</div>';
+    });
+    return html;
+}
+
+layui.use(['table'], function(){
+    var table = layui.table;
+    table.render({
+        elem: '#role-table',
+        data: roles,
+        cols: [[
+            {field: 'id', title: 'ID', width: 60},
+            {field: 'name', title: '角色名称', width: 150},
+            {field: 'rules', title: '权限ID', width: 300},
+            {title: '操作', toolbar: '#roleToolbar', width: 160}
+        ]],
+        page: false
+    });
+
+    table.on('tool(roleTable)', function(obj){
+        var data = obj.data;
+        if (obj.event === 'edit') {
+            openRoleEdit(data);
+        } else if (obj.event === 'del') {
+            layer.confirm('确认删除该角色？', function(index){
+                $.post('/auth/roleDelete', {id: data.id}, function(res){
+                    if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                    else { layer.msg(res.msg, {icon:2}); }
+                });
+                layer.close(index);
+            });
+        }
+    });
+});
+
+window.openRoleEdit = function(data){
+    var isEdit = !!data;
+    var checkedIds = data ? data.rules.split(',') : [];
+    var treeHtml = buildTreeHtml(ruleTree, checkedIds, '');
+
+    var html = '<div class="layui-form" style="padding:20px;">\
+        <div class="layui-form-item"><label class="layui-form-label">角色名称</label><div class="layui-input-block"><input type="text" name="name" value="'+(isEdit?data.name:'')+'" class="layui-input"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">分配权限</label><div class="layui-input-block" style="max-height:300px;overflow-y:auto;">' + treeHtml + '</div></div>\
+    </div>';
+    layer.open({
+        type: 1,
+        title: isEdit ? '编辑角色' : '新增角色',
+        area: ['500px', '450px'],
+        content: html,
+        btn: ['保存', '取消'],
+        yes: function(index, layero){
+            var form = layui.form;
+            form.render('checkbox');
+            var name = layui.$(layero).find('[name=name]').val();
+            var ruleIds = [];
+            layui.$(layero).find('input[type=checkbox]:checked').each(function(){
+                ruleIds.push($(this).val());
+            });
+            var url = isEdit ? '/auth/roleEdit' : '/auth/roleAdd';
+            $.post(url, {id: isEdit ? data.id : 0, name: name, rules: ruleIds.join(',')}, function(res){
+                if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                else { layer.msg(res.msg, {icon:2}); }
+            });
+            layer.close(index);
+        }
+    });
+};
+</script>
+{/block}

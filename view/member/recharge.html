@@ -1,0 +1,90 @@
+﻿﻿﻿﻿﻿﻿{extend name="layout" /}
+{block name="content"}
+<div class="layui-card" style="max-width:600px;margin:0 auto;">
+    <div class="layui-card-header">会员充值</div>
+    <div class="layui-card-body">
+        <div style="padding:10px;">
+            <div class="layui-form-item">
+                <label class="layui-form-label">选择会员</label>
+                <div class="layui-input-block" style="position:relative;">
+                    <div style="display:flex;gap:8px;">
+                        <input type="text" id="member-search" placeholder="搜索手机号/姓名" class="layui-input" autocomplete="off" style="flex:1;">
+                        <button class="layui-btn layui-btn-primary" id="btn-search-member"><i class="layui-icon layui-icon-search"></i> 搜索</button>
+                    </div>
+                    <div id="member-search-result" class="search-result" style="position:absolute;top:42px;left:0;z-index:999;background:#fff;width:100%;display:none;"></div>
+                </div>
+            </div>
+            <div id="member-info" style="padding:10px;background:#f9f9f9;display:none;margin-bottom:10px;"></div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">充值金额</label>
+                <div class="layui-input-block"><input type="number" id="amount" step="0.01" min="0.01" placeholder="请输入充值金额" class="layui-input"></div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <button class="layui-btn" id="btn-recharge" style="background-color:#5FB878;">确认充值</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{/block}
+
+{block name="script"}
+<script>
+var allMembers = {:json_encode($members, JSON_UNESCAPED_UNICODE)};
+var selectedMember = null;
+var $resBox = $('#member-search-result');
+
+function doMemberSearch() {
+    var keyword = $('#member-search').val().trim();
+    if (keyword.length < 1) { $resBox.hide().empty(); return; }
+    var filtered = allMembers.filter(function(m){
+        return m.name.indexOf(keyword) !== -1 || m.phone.indexOf(keyword) !== -1;
+    }).slice(0, 10);
+    if (filtered.length > 0) {
+        var html = '';
+        filtered.forEach(function(m){
+            html += '<div class="search-item" data-id="' + m.id + '" style="padding:8px 12px;border-bottom:1px solid #eee;cursor:pointer;">' + m.name + ' | ' + m.phone + ' | 余额：' + m.balance + '</div>';
+        });
+        $resBox.html(html).show();
+    } else { $resBox.hide().empty(); }
+}
+
+$('#member-search').on('input', doMemberSearch);
+$('#member-search').on('keydown', function(e){
+    if (e.keyCode === 13) { doMemberSearch(); }
+});
+$('#btn-search-member').on('click', doMemberSearch);
+
+$resBox.on('click', '.search-item', function(){
+    var id = parseInt($(this).data('id'));
+    selectedMember = allMembers.find(function(m){ return m.id === id; });
+    $('#member-info').html('<strong>' + selectedMember.name + '</strong> | ' + selectedMember.phone + ' | 当前余额：<span style="color:#009688;font-size:16px;">&yen;' + selectedMember.balance + '</span>').show();
+    $('#member-search').val('').hide();
+    $resBox.hide().empty();
+});
+
+$(document).on('click', function(e){
+    if (!$(e.target).closest('#member-search-result').length && !$(e.target).is('#member-search')) {
+        $resBox.hide().empty();
+    }
+});
+
+$('#btn-recharge').on('click', function(){
+    if (!selectedMember) { layer.msg('请选择会员'); return; }
+    var amount = $('#amount').val();
+    if (!amount || parseFloat(amount) <= 0) { layer.msg('请输入有效金额'); return; }
+    layer.confirm('确认为 ' + selectedMember.name + ' 充值 &yen;' + amount + '？', function(index){
+        $.post('/member/doRecharge', {member_id: selectedMember.id, amount: amount}, function(res){
+            if (res.code === 0) {
+                layer.msg(res.msg, {icon:1});
+                selectedMember.balance = res.data.after_balance;
+                $('#member-info').html('<strong>' + selectedMember.name + '</strong> | ' + selectedMember.phone + ' | 当前余额：<span style="color:#009688;font-size:16px;">&yen;' + selectedMember.balance + '</span>').show();
+                $('#amount').val('');
+            } else { layer.msg(res.msg, {icon:2}); }
+        });
+        layer.close(index);
+    });
+});
+</script>
+{/block}

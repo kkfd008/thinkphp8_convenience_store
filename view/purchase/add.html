@@ -1,0 +1,160 @@
+{extend name="layout" /}
+{block name="content"}
+<div class="layui-form" style="padding:10px;">
+    <div class="layui-form-item">
+        <label class="layui-form-label">供货商</label>
+        <div class="layui-input-inline" style="width:250px;">
+            <select id="supplier-select" lay-search>
+                <option value="">请选择</option>
+                {foreach $suppliers as $s}
+                <option value="{$s.id}">{$s.name}</option>
+                {/foreach}
+            </select>
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">添加商品</label>
+        <div class="layui-input-inline" style="width:250px;">
+            <input type="text" id="goods-search" placeholder="条码/名称搜索" class="layui-input" onkeydown="if(event.keyCode===13)searchGoods()">
+        </div>
+        <button class="layui-btn layui-btn-primary" onclick="searchGoods()">搜索</button>
+    </div>
+    <div id="search-result" class="search-result" style="margin-left:110px;display:none;"></div>
+</div>
+
+<table id="cart-table" lay-filter="cartTable"></table>
+
+<script type="text/html" id="cartToolbar">
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+</script>
+
+<div style="padding:10px;">
+    <div class="layui-form-item">
+        <label class="layui-form-label">备注</label>
+        <div class="layui-input-block"><textarea id="remark" class="layui-textarea" style="min-height:60px;"></textarea></div>
+    </div>
+    <div style="text-align:right;font-size:16px;color:#FF5722;margin-bottom:10px;">总数量：<span id="total-num">0</span>&nbsp;&nbsp;总金额：<span id="total-amount">0.00</span></div>
+    <button class="layui-btn" onclick="doSubmit()" style="background-color:#5FB878;">提 交 进 货 单</button>
+</div>
+{/block}
+
+{block name="script"}
+<script>
+var cartItems = [];
+var cartTable = null;
+
+function searchGoods() {
+    var keyword = $('#goods-search').val();
+    if (!keyword) return;
+    $.get('/purchase/searchGoods', {keyword: keyword}, function(res){
+        if (res.code === 0 && res.data.length > 0) {
+            var html = '';
+            res.data.forEach(function(g){
+                html += '<div class="goods-item" data-item=' + JSON.stringify(g).replace(/"/g, "'") + ' onclick="addToCart(this)">' + g.barcode + ' | ' + g.name + (g.unit ? ' | ' + g.unit : '') + ' | 进:' + g.purchase_price + ' | 售:' + g.retail_price + '</div>';
+            });
+            $('#search-result').html(html).show();
+        } else {
+            layer.msg('未找到商品');
+        }
+    });
+}
+
+window.addToCart = function(el) {
+    var itemStr = el.getAttribute('data-item').replace(/'/g, '"');
+    var goods = JSON.parse(itemStr);
+    var found = false;
+    cartItems.forEach(function(ci){
+        if (ci.barcode === goods.barcode) { ci.box_count++; found = true; }
+    });
+    if (!found) {
+        cartItems.push({barcode: goods.barcode, goods_name: goods.name, unit: goods.unit || '', purchase_price: goods.purchase_price, retail_price: goods.retail_price, box_spec: goods.box_spec || 1, box_count: 1, piece_count: 0});
+    }
+    $('#search-result').hide();
+    $('#goods-search').val('');
+    renderCart();
+};
+
+function renderCart(){
+    if (cartItems.length === 0) {
+        $('#cart-table').parent().find('.layui-table-view').hide();
+        $('#total-num').text('0');
+        $('#total-amount').text('0.00');
+        return;
+    }
+    $('#cart-table').parent().find('.layui-table-view').show();
+    if (cartTable) {
+        cartTable.reloadData('cartTable', {data: cartItems});
+    }
+    updateTotal();
+}
+
+function updateTotal() {
+    var totalNum = 0, totalAmount = 0;
+    cartItems.forEach(function(item){
+        var qty = (item.box_spec || 1) * (item.box_count || 0) + (item.piece_count || 0);
+        totalNum += qty;
+        totalAmount += item.purchase_price * qty;
+    });
+    $('#total-num').text(totalNum);
+    $('#total-amount').text(totalAmount.toFixed(2));
+}
+
+layui.use(['table', 'form'], function(){
+    var table = layui.table;
+    cartTable = table;
+    var form = layui.form;
+    form.render('select');
+
+    table.render({
+        elem: '#cart-table',
+        id: 'cartTable',
+        data: [],
+        cols: [[
+            {field: 'barcode', title: '条码', width: 130},
+            {field: 'goods_name', title: '商品名称', width: 130},
+            {field: 'unit', title: '单位', width: 60},
+            {field: 'purchase_price', title: '进货价', width: 80},
+            {field: 'retail_price', title: '零售价', width: 80},
+            {field: 'box_spec', title: '箱规', width: 80, edit: 'number'},
+            {field: 'box_count', title: '箱数', width: 80, edit: 'number'},
+            {field: 'piece_count', title: '散件', width: 80, edit: 'number'},
+            {field: 'total_amount', title: '金额', width: 100, templet: function(d){
+                return (d.purchase_price * (d.box_spec * d.box_count + d.piece_count)).toFixed(2);
+            }},
+            {title: '操作', toolbar: '#cartToolbar', width: 80}
+        ]]
+    });
+    table.on('tool(cartTable)', function(obj){
+        if (obj.event === 'del') {
+            cartItems = cartItems.filter(function(ci){ return ci.barcode !== obj.data.barcode; });
+            renderCart();
+        }
+    });
+
+    table.on('edit(cartTable)', function(obj){
+        obj.data[obj.field] = parseInt(obj.value) || 0;
+        updateTotal();
+        table.reloadData('cartTable', {data: cartItems});
+    });
+});
+
+function doSubmit(){
+    var supplierId = $('#supplier-select').val();
+    if (!supplierId) { layer.msg('请选择供货商'); return; }
+    if (cartItems.length === 0) { layer.msg('请添加进货明细'); return; }
+
+    var loading = layer.load();
+    $.post('/purchase/doAdd', {supplier_id: supplierId, items: JSON.stringify(cartItems), remark: $('#remark').val()}, function(res){
+        layer.close(loading);
+        if (res.code === 0) {
+            layer.msg(res.msg, {icon: 1}, function(){
+                location.href = '/purchase/index';
+            });
+        } else {
+            layer.msg(res.msg, {icon: 2});
+        }
+    });
+}
+</script>
+{/block}

@@ -1,0 +1,125 @@
+﻿﻿﻿﻿﻿﻿﻿{extend name="layout" /}
+{block name="content"}
+<div class="layui-fluid">
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md3">
+            <div class="layui-card">
+                <div class="layui-card-header">今日营收</div>
+                <div class="layui-card-body" style="font-size:28px;color:#5FB878;">
+                    &yen;{$today_amount|default='0.00'}
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md3">
+            <div class="layui-card">
+                <div class="layui-card-header">今日订单</div>
+                <div class="layui-card-body" style="font-size:28px;color:#1E9FFF;">
+                    {$today_orders|default=0}
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md3">
+            <div class="layui-card">
+                <div class="layui-card-header">累计营收</div>
+                <div class="layui-card-body" style="font-size:28px;color:#FFB800;">
+                    &yen;{$total_amount|default='0.00'}
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md3">
+            <div class="layui-card">
+                <div class="layui-card-header">累计订单</div>
+                <div class="layui-card-body" style="font-size:28px;color:#FF5722;">
+                    {$total_orders|default=0}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="layui-row layui-col-space15" style="margin-top:15px;">
+        <div class="layui-col-md4">
+            <div class="layui-card">
+                <div class="layui-card-header">商品总数</div>
+                <div class="layui-card-body" style="font-size:22px;">
+                    {$goods_count|default=0}
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md4">
+            <div class="layui-card">
+                <div class="layui-card-header">会员总数</div>
+                <div class="layui-card-body" style="font-size:22px;">
+                    {$member_count|default=0}
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md4">
+            <div class="layui-card">
+                <div class="layui-card-header">供货商总数</div>
+                <div class="layui-card-body" style="font-size:22px;">
+                    {$supplier_count|default=0}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="layui-row layui-col-space15" style="margin-top:15px;">
+        <div class="layui-col-md12">
+            <div class="layui-card">
+                <div class="layui-card-header">近15日销售/进货趋势</div>
+                <div class="layui-card-body">
+                    <div id="trend-chart" style="height:350px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="layui-row layui-col-space15" style="margin-top:15px;">
+        <div class="layui-col-md12">
+            <div class="layui-card">
+                <div class="layui-card-header">商品销量 TOP10</div>
+                <div class="layui-card-body">
+                    <div id="top10-chart" style="height:400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{/block}
+
+{block name="script"}
+<script src="{__STATIC__}/echarts/echarts.min.js"></script>
+<script>
+layui.use(['element'], function(){
+    var $ = layui.$;
+
+    var trendChart = echarts.init(document.getElementById('trend-chart'));
+    var trendOption = {
+        tooltip: { trigger: 'axis' },
+        legend: { data: ['销售额', '进货额'] },
+        xAxis: { type: 'category', data: {:json_encode($trend_dates, JSON_UNESCAPED_UNICODE)} },
+        yAxis: { type: 'value' },
+        series: [
+            { name: '销售额', type: 'line', data: {:json_encode($trend_sales, JSON_UNESCAPED_UNICODE)}, smooth: true, itemStyle: { color: '#5FB878' } },
+            { name: '进货额', type: 'line', data: {:json_encode($trend_purchases, JSON_UNESCAPED_UNICODE)}, smooth: true, itemStyle: { color: '#1E9FFF' } }
+        ]
+    };
+    trendChart.setOption(trendOption);
+
+    var top10Chart = echarts.init(document.getElementById('top10-chart'));
+    var top10Option = {
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '3%', right: '10%', bottom: '3%', containLabel: true },
+        xAxis: { type: 'value' },
+        yAxis: { type: 'category', data: {:json_encode($top10_names, JSON_UNESCAPED_UNICODE)}, inverse: true },
+        series: [{ name: '销量', type: 'bar', data: {:json_encode($top10_counts, JSON_UNESCAPED_UNICODE)}, itemStyle: { color: '#009688' } }]
+    };
+    top10Chart.setOption(top10Option);
+
+    window.addEventListener('resize', function(){
+        trendChart.resize();
+        top10Chart.resize();
+    });
+});
+</script>
+{/block}

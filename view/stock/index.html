@@ -1,0 +1,99 @@
+{extend name="layout" /}
+{block name="content"}
+<div class="search-form">
+    <div class="layui-inline"><input type="text" id="search-keyword" placeholder="名称/条码" class="layui-input" value="{$keyword|default=''}"></div>
+    <div class="layui-inline">
+        <select id="search-cate"><option value="">全部分类</option>
+            {foreach $cateList as $c}<option value="{$c}" {if isset($cate) && $cate===$c}selected{/if}>{$c}</option>{/foreach}
+        </select>
+    </div>
+    <div class="layui-inline"><button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button></div>
+    <div class="layui-inline layui-right"><button class="layui-btn layui-btn-primary" onclick="exportData()"><i class="layui-icon layui-icon-export"></i> 导出</button></div>
+</div>
+<table id="stock-table" lay-filter="stockTable"></table>
+{/block}
+
+{block name="script"}
+<script>
+var stockList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
+
+layui.use(['table', 'element'], function(){
+    var table = layui.table;
+    table.render({
+        elem: '#stock-table',
+        data: stockList,
+        cols: [[
+            {field: 'id', title: 'ID', width: 60},
+            {field: 'name', title: '名称', width: 130},
+            {field: 'barcode', title: '条码', width: 120},
+            {field: 'cate', title: '分类', width: 80},
+            {field: 'stock', title: '库存', width: 80},
+            {field: 'stock_min', title: '库存下限', width: 100, edit: 'number'},
+            {field: 'stock_max', title: '库存上限', width: 100, edit: 'number'},
+            {title: '操作', toolbar: '#stockToolbar', width: 100}
+        ]],
+        page: false,
+        done: function(res){
+            res.data.forEach(function(item, i){
+                var $tr = $('.layui-table-body tbody tr').eq(i);
+                if (item.stock_min && item.stock < item.stock_min) $tr.css('background-color', '#FFF0F0');
+                else if (item.stock_max && item.stock > item.stock_max) $tr.css('background-color', '#FFFDE0');
+            });
+        }
+    });
+
+    table.on('edit(stockTable)', function(obj){
+        $.post('/stock/updateThreshold', {
+            id: obj.data.id,
+            stock_min: obj.field === 'stock_min' ? obj.value : obj.data.stock_min,
+            stock_max: obj.field === 'stock_max' ? obj.value : obj.data.stock_max
+        }, function(res){
+            if (res.code === 0) layer.msg(res.msg, {icon:1});
+            else layer.msg(res.msg, {icon:2});
+        });
+    });
+
+    table.on('tool(stockTable)', function(obj){
+        if (obj.event === 'detail') {
+            var data = obj.data;
+            var loading = layer.load();
+            $.get('/stock/detail', {barcode: data.barcode}, function(res){
+                layer.close(loading);
+                if (res.code !== 0) { layer.msg(res.msg, {icon:2}); return; }
+                var d = res.data;
+                var headerHtml = '<div style="padding:8px 0;font-size:14px;"><strong>' + d.goods_name + '</strong> | 条码：' + d.barcode + ' | 当前库存：<span style="color:#009688;font-size:16px;">' + d.stock + '</span></div>';
+                if (d.rows.length === 0) {
+                    headerHtml += '<div style="color:#999;padding:10px 0;">暂无变动记录</div>';
+                    layer.open({ type:1, title:'库存明细', area:['700px','300px'], content: headerHtml });
+                    return;
+                }
+                var tblHtml = '<table class="layui-table" style="margin:0;"><thead><tr><th>时间</th><th>类型</th><th>变动数量</th><th>变动后库存</th><th>关联单号</th></tr></thead><tbody>';
+                d.rows.forEach(function(r){
+                    var cls = r.type === '进货' ? 'color:#009688;' : 'color:#FF5722;';
+                    var sign = r.qty_change > 0 ? '+' + r.qty_change : r.qty_change;
+                    tblHtml += '<tr><td>' + new Date(r.create_time * 1000).toLocaleString() + '</td><td style="' + cls + 'font-weight:bold;">' + r.type + '</td><td>' + sign + '</td><td>' + r.balance + '</td><td>' + (r.ref_no || '-') + '</td></tr>';
+                });
+                tblHtml += '</tbody></table>';
+                layer.open({
+                    type: 1,
+                    title: '库存明细',
+                    area: ['750px', '450px'],
+                    content: '<div style="padding:12px;max-height:360px;overflow-y:auto;">' + headerHtml + tblHtml + '</div>'
+                });
+            });
+        }
+    });
+});
+</script>
+
+<script type="text/html" id="stockToolbar">
+    <a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="detail">库存明细</a>
+</script>
+
+<script>
+window.doSearch = function(){
+    location.href = '/stock/index?keyword=' + encodeURIComponent($('#search-keyword').val()) + '&cate=' + encodeURIComponent($('#search-cate').val());
+};
+window.exportData = function(){ location.href = '/stock/export'; };
+</script>
+{/block}

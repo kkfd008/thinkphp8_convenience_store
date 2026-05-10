@@ -1,0 +1,84 @@
+﻿{extend name="layout" /}
+{block name="content"}
+<div class="toolbar">
+    <button class="layui-btn layui-btn-primary" onclick="openAdminEdit()"><i class="layui-icon layui-icon-add-1"></i> 新增管理员</button>
+</div>
+<table id="admin-table" lay-filter="adminTable"></table>
+
+<script type="text/html" id="adminToolbar">
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+</script>
+{/block}
+
+{block name="script"}
+<script>
+var admins = {:json_encode($admins, JSON_UNESCAPED_UNICODE)};
+var roleList = {:json_encode($roles, JSON_UNESCAPED_UNICODE)};
+
+layui.use(['table'], function(){
+    var table = layui.table;
+    table.render({
+        elem: '#admin-table',
+        data: admins,
+        cols: [[
+            {field: 'id', title: 'ID', width: 60},
+            {field: 'username', title: '账号', width: 150},
+            {field: 'role_name', title: '角色', width: 120},
+            {field: 'create_time', title: '创建时间', width: 170, templet: function(d){ return d.create_time ? new Date(d.create_time * 1000).toLocaleString() : '-'; }},
+            {title: '操作', toolbar: '#adminToolbar', width: 160}
+        ]],
+        page: false
+    });
+
+    table.on('tool(adminTable)', function(obj){
+        var data = obj.data;
+        if (obj.event === 'edit') {
+            openAdminEdit(data);
+        } else if (obj.event === 'del') {
+            layer.confirm('确认删除该管理员？', function(index){
+                $.post('/auth/adminDelete', {id: data.id}, function(res){
+                    if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                    else { layer.msg(res.msg, {icon:2}); }
+                });
+                layer.close(index);
+            });
+        }
+    });
+});
+
+window.openAdminEdit = function(data){
+    var isEdit = !!data;
+    var roleOptions = roleList.map(function(r){ return '<option value="'+r.id+'" ' + (isEdit && data.role_id === r.id ? 'selected' : '') + '>' + r.name + '</option>'; });
+    var html = '<div style="padding:20px;">\
+        <div class="layui-form-item"><label class="layui-form-label">账号</label><div class="layui-input-block"><input type="text" name="username" value="'+(isEdit?data.username:'')+'" class="layui-input"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">密码</label><div class="layui-input-block"><input type="password" name="password" value="" class="layui-input" placeholder="'+(isEdit?'留空不修改':'')+'"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">角色</label><div class="layui-input-block"><select name="role_id"><option value="">请选择</option>' + roleOptions.join('') + '</select></div></div>\
+    </div>';
+    layer.open({
+        type: 1,
+        title: isEdit ? '编辑管理员' : '新增管理员',
+        area: ['450px', '320px'],
+        content: html,
+        btn: ['保存', '取消'],
+        yes: function(index, layero){
+            var formDom = layui.$(layero);
+            var postData = {
+                id: isEdit ? data.id : 0,
+                username: formDom.find('[name=username]').val(),
+                password: formDom.find('[name=password]').val(),
+                role_id: formDom.find('[name=role_id]').val()
+            };
+            if (!postData.username) { layer.msg('请输入账号'); return; }
+            if (!isEdit && !postData.password) { layer.msg('请输入密码'); return; }
+            var url = isEdit ? '/auth/adminEdit' : '/auth/adminAdd';
+            $.post(url, postData, function(res){
+                if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                else { layer.msg(res.msg, {icon:2}); }
+            });
+            layer.close(index);
+        }
+    });
+};
+</script>
+{/block}

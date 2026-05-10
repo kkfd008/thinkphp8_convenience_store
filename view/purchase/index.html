@@ -1,0 +1,137 @@
+﻿﻿﻿﻿﻿{extend name="layout" /}
+{block name="content"}
+<div class="search-form">
+    <div class="layui-inline">
+        <input type="text" id="search-keyword" placeholder="进货单号" class="layui-input" value="{$keyword|default=''}">
+    </div>
+    <div class="layui-inline">
+        <select id="search-supplier">
+            <option value="">全部供货商</option>
+            {foreach $suppliers as $s}
+            <option value="{$s.id}" {if isset($supplier_id) && $supplier_id==$s.id}selected{/if}>{$s.name}</option>
+            {/foreach}
+        </select>
+    </div>
+    <div class="layui-inline">
+        <input type="text" id="search-start" placeholder="开始日期" class="layui-input" value="{$start_date|default=''}">
+    </div>
+    <div class="layui-inline">
+        <input type="text" id="search-end" placeholder="结束日期" class="layui-input" value="{$end_date|default=''}">
+    </div>
+    <div class="layui-inline">
+        <button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button>
+    </div>
+    <div class="layui-inline layui-right">
+        <a href="/purchase/add" class="layui-btn layui-btn-primary"><i class="layui-icon layui-icon-add-1"></i> 新建进货</a>
+        <button class="layui-btn layui-btn-primary" onclick="importExcel()"><i class="layui-icon layui-icon-upload-drag"></i> Excel导入</button>
+        <button class="layui-btn layui-btn-primary" id="import-sheets-btn"><i class="layui-icon layui-icon-file"></i> 海聘导入</button>
+        <button class="layui-btn layui-btn-primary" onclick="downloadTemplate()"><i class="layui-icon layui-icon-download-circle"></i> 下载模板</button>
+        <button class="layui-btn layui-btn-primary" onclick="exportData()"><i class="layui-icon layui-icon-export"></i> 导出</button>
+    </div>
+</div>
+<table id="purchase-table" lay-filter="purchaseTable"></table>
+
+<script type="text/html" id="toolbar">
+    <a class="layui-btn layui-btn-xs" lay-event="detail">查看明细</a>
+</script>
+{/block}
+
+{block name="script"}
+<script>
+var purchaseList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
+
+layui.use(['table', 'laydate', 'upload'], function(){
+    var table = layui.table;
+    var laydate = layui.laydate;
+    var upload = layui.upload;
+    laydate.render({elem: '#search-start'});
+    laydate.render({elem: '#search-end'});
+
+    upload.render({
+        elem: '#import-sheets-btn',
+        url: '/purchase/importSheets',
+        accept: 'file',
+        exts: 'xlsx',
+        done: function(res){
+            if (res.code === 0) {
+                var logHtml = res.data.log.map(function(s){ return '<div>' + s + '</div>'; }).join('');
+                layer.open({
+                    type: 1,
+                    title: '海聘导入结果（' + res.data.orders + '张单，' + res.data.items + '种商品）',
+                    area: ['600px', '450px'],
+                    content: '<div style="padding:20px;max-height:350px;overflow-y:auto;font-size:13px;line-height:2;">' + logHtml + '</div>',
+                    btn: ['确定'],
+                    yes: function(){ location.reload(); }
+                });
+            } else {
+                layer.msg(res.msg, {icon:2});
+            }
+        }
+    });
+
+    table.render({
+        elem: '#purchase-table',
+        data: purchaseList,
+        cols: [[
+            {field: 'purchase_no', title: '进货单号', width: 170},
+            {field: 'supplier_name', title: '供货商', width: 150},
+            {field: 'total_amount', title: '总金额', width: 100},
+            {field: 'total_goods_num', title: '总数量', width: 90},
+            {field: 'create_time', title: '进货时间', width: 170, templet: function(d){
+                return d.create_time ? new Date(d.create_time * 1000).toLocaleString() : '-';
+            }},
+            {title: '操作', toolbar: '#toolbar', width: 100}
+        ]],
+        page: false
+    });
+
+    table.on('tool(purchaseTable)', function(obj){
+        if (obj.event === 'detail') {
+            location.href = '/purchase/detail?id=' + obj.data.id;
+        }
+    });
+});
+
+window.doSearch = function(){
+    var params = [];
+    var keyword = $('#search-keyword').val();
+    if (keyword) params.push('keyword=' + encodeURIComponent(keyword));
+    var supplier = $('#search-supplier').val();
+    if (supplier) params.push('supplier_id=' + supplier);
+    var start = $('#search-start').val();
+    if (start) params.push('start_date=' + start);
+    var end = $('#search-end').val();
+    if (end) params.push('end_date=' + end);
+    location.href = '/purchase/index' + (params.length > 0 ? '?' + params.join('&') : '');
+};
+
+window.exportData = function(){ location.href = '/purchase/export'; };
+
+window.downloadTemplate = function(){ location.href = '/purchase/downloadTemplate'; };
+
+window.importExcel = function(){
+    var html = '<div style="padding:20px;"><div class="layui-upload-drag" id="import-upload">\
+        <i class="layui-icon layui-icon-upload-drag"></i><div>点击上传进货Excel</div>\
+    </div><div id="import-result" style="margin-top:10px;"></div></div>';
+    layer.open({
+        type: 1, title: 'Excel导入进货单', area: ['500px', '350px'], content: html,
+        success: function(layero){
+            layui.use('upload', function(){
+                layui.upload.render({
+                    elem: '#import-upload',
+                    url: '/purchase/import',
+                    accept: 'file',
+                    exts: 'xls|xlsx',
+                    done: function(res){
+                        var html = res.code === 0
+                            ? '成功：' + res.data.success + ' 条，失败：' + res.data.fail + ' 条' + (res.data.details.length > 0 ? '<br>' + res.data.details.join('<br>') : '')
+                            : '<span style="color:red;">' + res.msg + '</span>';
+                        $('#import-result').html('<div style="padding:10px;border:1px solid #ddd;border-radius:3px;">' + html + '</div>');
+                    }
+                });
+            });
+        }
+    });
+};
+</script>
+{/block}

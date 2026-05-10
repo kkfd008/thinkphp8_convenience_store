@@ -1,0 +1,28 @@
+{extend name="layout" /}
+{block name="content"}
+<div class="layui-card">
+    <div class="layui-card-header">订单信息</div>
+    <div class="layui-card-body">
+        <table class="layui-table">
+            <tr><td width="100">订单号</td><td>{$order.order_no}</td><td width="100">支付方式</td><td>{if $order.pay_type==1}现金{else}会员余额{/if}</td></tr>
+            <tr><td>原价</td><td>&yen;{$order.total_amount}</td><td>折扣</td><td>&yen;{$order.discount_amount}</td></tr>
+            <tr><td>实付</td><td style="color:#FF5722;font-weight:bold;">&yen;{$order.pay_amount}</td><td>会员</td><td>{$order.member_name|default='非会员'}</td></tr>
+            <tr><td>下单时间</td><td colspan="3">{:date('Y-m-d H:i:s', $order.create_time)}</td></tr>
+        </table>
+    </div>
+</div>
+
+<div class="layui-card" style="margin-top:15px;">
+    <div class="layui-card-header">订单明细</div>
+    <div class="layui-card-body">
+        <table class="layui-table">
+            <thead><tr><th>条码</th><th>商品名称</th><th>进价</th><th>售价</th><th>数量</th><th>成本</th><th>销售金额</th></tr></thead>
+            <tbody>
+                {foreach $details as $d}
+                <tr><td>{$d.barcode}</td><td>{$d.goods_name}</td><td>&yen;{:number_format(floatval($d.purchase_price ?? 0), 2)}</td><td>&yen;{$d.retail_price}</td><td>{$d.quantity}</td><td>&yen;{:number_format(floatval($d.purchase_price ?? 0) * intval($d.quantity), 2)}</td><td>&yen;{$d.total_amount}</td></tr>
+                {/foreach}
+            </tbody>
+        </table>
+    </div>
+</div>
+{/block}

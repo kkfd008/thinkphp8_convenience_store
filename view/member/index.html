@@ -1,0 +1,85 @@
+﻿﻿﻿﻿﻿﻿﻿﻿{extend name="layout" /}
+{block name="content"}
+<div class="search-form">
+    <div class="layui-inline"><input type="text" id="search-keyword" placeholder="姓名/手机号" class="layui-input" value="{$keyword|default=''}"></div>
+    <div class="layui-inline"><button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button></div>
+    <div class="layui-inline layui-right">
+        <button class="layui-btn layui-btn-primary" onclick="openEdit()"><i class="layui-icon layui-icon-add-1"></i> 新增会员</button>
+        <button class="layui-btn layui-btn-primary" onclick="exportData()"><i class="layui-icon layui-icon-export"></i> 导出</button>
+    </div>
+</div>
+<table id="member-table" lay-filter="memberTable"></table>
+
+<script type="text/html" id="toolbar">
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+</script>
+{/block}
+
+{block name="script"}
+<script>
+var memberList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
+var cates = {:json_encode($cates, JSON_UNESCAPED_UNICODE)};
+
+layui.use(['table'], function(){
+    var table = layui.table;
+    table.render({
+        elem: '#member-table',
+        data: memberList,
+        cols: [[
+            {field: 'id', title: 'ID', width: 60},
+            {field: 'name', title: '姓名', width: 100},
+            {field: 'phone', title: '手机号', width: 120},
+            {field: 'cate_name', title: '分类', width: 100},
+            {field: 'discount', title: '折扣', width: 70, templet: function(d){ return d.discount ? (d.discount*100).toFixed(0)+'%' : '100%'; }},
+            {field: 'balance', title: '余额', width: 90},
+            {field: 'create_time', title: '创建时间', width: 170, templet: function(d){ return d.create_time ? new Date(d.create_time * 1000).toLocaleString() : '-'; }},
+            {title: '操作', toolbar: '#toolbar', width: 120}
+        ]],
+        page: false
+    });
+
+    table.on('tool(memberTable)', function(obj){
+        if (obj.event === 'edit') openEdit(obj.data);
+        else if (obj.event === 'del') {
+            layer.confirm('确认删除该会员？', function(index){
+                $.post('/member/delete', {id: obj.data.id}, function(res){
+                    if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                    else layer.msg(res.msg, {icon:2});
+                });
+                layer.close(index);
+            });
+        }
+    });
+});
+
+window.openEdit = function(data){
+    var isEdit = !!data;
+    var cateOpts = cates.map(function(c){ return '<option value="'+c.id+'" '+(isEdit&&data.cate_id==c.id?'selected':'')+'>'+c.name+'</option>'; });
+    var html = '<div style="padding:20px;">\
+        <div class="layui-form-item"><label class="layui-form-label">姓名</label><div class="layui-input-block"><input type="text" name="name" value="'+(isEdit?data.name:'')+'" class="layui-input"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">手机号</label><div class="layui-input-block"><input type="text" name="phone" value="'+(isEdit?data.phone:'')+'" class="layui-input"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">分类</label><div class="layui-input-block"><select name="cate_id"><option value="0">无</option>'+cateOpts.join('')+'</select></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">备注</label><div class="layui-input-block"><textarea name="remark" class="layui-textarea">'+(isEdit?data.remark||'':'')+'</textarea></div></div>\
+    </div>';
+    layer.open({
+        type: 1, title: isEdit ? '编辑会员' : '新增会员', area: ['500px', '350px'], content: html,
+        btn: ['保存', '取消'],
+        yes: function(index, layero){
+            var formDom = layui.$(layero);
+            var postData = {id: isEdit ? data.id : 0, name: formDom.find('[name=name]').val(), phone: formDom.find('[name=phone]').val(), cate_id: formDom.find('[name=cate_id]').val(), remark: formDom.find('[name=remark]').val()};
+            if (!postData.name) { layer.msg('请输入姓名'); return; }
+            if (!postData.phone) { layer.msg('请输入手机号'); return; }
+            $.post(isEdit ? '/member/edit' : '/member/add', postData, function(res){
+                if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                else layer.msg(res.msg, {icon:2});
+            });
+            layer.close(index);
+        }
+    });
+};
+
+window.doSearch = function(){ location.href = '/member/index?keyword=' + encodeURIComponent($('#search-keyword').val()); };
+window.exportData = function(){ location.href = '/member/export'; };
+</script>
+{/block}

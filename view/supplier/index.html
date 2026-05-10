@@ -1,0 +1,149 @@
+﻿﻿﻿﻿﻿﻿﻿﻿{extend name="layout" /}
+{block name="content"}
+<div class="search-form">
+    <div class="layui-inline">
+        <input type="text" id="search-keyword" placeholder="名称/电话" class="layui-input" value="{$keyword|default=''}">
+    </div>
+    <div class="layui-inline">
+        <select id="search-status">
+            <option value="">全部状态</option>
+            <option value="1" {if isset($status) && $status === '1'}selected{/if}>启用</option>
+            <option value="0" {if isset($status) && $status === '0'}selected{/if}>禁用</option>
+        </select>
+    </div>
+    <div class="layui-inline">
+        <button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button>
+    </div>
+    <div class="layui-inline layui-right">
+        <button class="layui-btn layui-btn-primary" onclick="openEdit()"><i class="layui-icon layui-icon-add-1"></i> 新增供货商</button>
+        <button class="layui-btn layui-btn-primary" id="import-btn"><i class="layui-icon layui-icon-upload-drag"></i> Excel导入</button>
+        <button class="layui-btn layui-btn-primary" onclick="downloadTemplate()"><i class="layui-icon layui-icon-download-circle"></i> 下载模板</button>
+        <button class="layui-btn layui-btn-primary" onclick="exportData()"><i class="layui-icon layui-icon-export"></i> 导出</button>
+    </div>
+</div>
+<table id="supplier-table" lay-filter="supplierTable"></table>
+
+<script type="text/html" id="toolbar">
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+    <a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="toggle">{{= d.status == 1 ? '禁用' : '启用' }}</a>
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+</script>
+{/block}
+
+{block name="script"}
+<script>
+var supplierList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
+
+layui.use(['table', 'upload'], function(){
+    var table = layui.table;
+    var upload = layui.upload;
+
+    upload.render({
+        elem: '#import-btn',
+        url: '/supplier/import',
+        accept: 'file',
+        exts: 'xls|xlsx',
+        done: function(res){
+            if (res.code === 0) {
+                layer.msg(res.msg, {icon:1});
+                setTimeout(function(){ location.reload(); }, 800);
+            } else {
+                layer.msg(res.msg, {icon:2});
+            }
+        }
+    });
+    table.render({
+        elem: '#supplier-table',
+        data: supplierList,
+        cols: [[
+            {field: 'id', title: 'ID', width: 60},
+            {field: 'name', title: '名称', width: 150},
+            {field: 'contact', title: '联系人', width: 100},
+            {field: 'phone', title: '电话', width: 120},
+            {field: 'address', title: '地址'},
+            {field: 'status', title: '状态', width: 80, templet: function(d){
+                return d.status == 1 ? '<span style="color:#5FB878;">启用</span>' : '<span style="color:#FF5722;">禁用</span>';
+            }},
+            {field: 'create_time', title: '创建时间', width: 170, templet: function(d){
+                return d.create_time ? new Date(d.create_time * 1000).toLocaleString() : '-';
+            }},
+            {title: '操作', toolbar: '#toolbar', width: 200}
+        ]],
+        page: false
+    });
+
+    table.on('tool(supplierTable)', function(obj){
+        var data = obj.data;
+        if (obj.event === 'edit') {
+            openEdit(data);
+        } else if (obj.event === 'toggle') {
+            var newStatus = data.status == 1 ? 0 : 1;
+            $.post('/supplier/toggleStatus', {id: data.id, status: newStatus}, function(res){
+                if (res.code === 0) {
+                    layer.msg(res.msg, {icon:1});
+                    setTimeout(function(){ location.reload(); }, 500);
+                } else { layer.msg(res.msg, {icon:2}); }
+            });
+        } else if (obj.event === 'del') {
+            layer.confirm('确认删除该供货商？', function(index){
+                $.post('/supplier/delete', {id: data.id}, function(res){
+                    if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                    else { layer.msg(res.msg, {icon:2}); }
+                });
+                layer.close(index);
+            });
+        }
+    });
+});
+
+window.openEdit = function(data){
+    var isEdit = !!data;
+    var html = '<div style="padding:20px;">\
+        <div class="layui-form-item"><label class="layui-form-label">名称</label><div class="layui-input-block"><input type="text" name="name" value="'+(isEdit?data.name:'')+'" class="layui-input"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">联系人</label><div class="layui-input-block"><input type="text" name="contact" value="'+(isEdit?data.contact:'')+'" class="layui-input"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">电话</label><div class="layui-input-block"><input type="text" name="phone" value="'+(isEdit?data.phone:'')+'" class="layui-input"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">地址</label><div class="layui-input-block"><input type="text" name="address" value="'+(isEdit?data.address:'')+'" class="layui-input"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">备注</label><div class="layui-input-block"><textarea name="remark" class="layui-textarea">'+(isEdit?data.remark:'')+'</textarea></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">状态</label><div class="layui-input-block"><select name="status"><option value="1" '+(isEdit&&data.status==1?'selected':'')+'>启用</option><option value="0" '+(isEdit&&data.status==0?'selected':'')+'>禁用</option></select></div></div>\
+    </div>';
+    layer.open({
+        type: 1,
+        title: isEdit ? '编辑供货商' : '新增供货商',
+        area: ['500px', '450px'],
+        content: html,
+        btn: ['保存', '取消'],
+        yes: function(index, layero){
+            var form = layui.$(layero);
+            var postData = {
+                id: isEdit ? data.id : 0,
+                name: form.find('[name=name]').val(),
+                contact: form.find('[name=contact]').val(),
+                phone: form.find('[name=phone]').val(),
+                address: form.find('[name=address]').val(),
+                remark: form.find('[name=remark]').val(),
+                status: form.find('[name=status]').val()
+            };
+            if (!postData.name) { layer.msg('请输入名称'); return; }
+            var url = isEdit ? '/supplier/edit' : '/supplier/add';
+            $.post(url, postData, function(res){
+                if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                else { layer.msg(res.msg, {icon:2}); }
+            });
+            layer.close(index);
+        }
+    });
+};
+
+window.doSearch = function(){
+    var keyword = $('#search-keyword').val();
+    var status = $('#search-status').val();
+    location.href = '/supplier/index?keyword=' + encodeURIComponent(keyword) + '&status=' + status;
+};
+
+window.downloadTemplate = function(){ location.href = '/supplier/downloadTemplate'; };
+
+window.exportData = function(){
+    location.href = '/supplier/export';
+};
+</script>
+{/block}

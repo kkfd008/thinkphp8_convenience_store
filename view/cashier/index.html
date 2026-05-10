@@ -1,0 +1,248 @@
+{extend name="layout" /}
+{block name="content"}
+<div class="layui-row layui-col-space15">
+    <div class="layui-col-md4">
+        <div class="layui-card">
+            <div class="layui-card-header">扫码/搜索加购</div>
+            <div class="layui-card-body">
+                <div style="position:relative;">
+                    <div style="display:flex;gap:8px;">
+                        <input type="text" id="scan-input" placeholder="输入条码或名称搜索商品" class="layui-input" autofocus style="flex:1;">
+                        <button class="layui-btn layui-btn-primary" id="btn-search-goods"><i class="layui-icon layui-icon-search"></i> 搜索</button>
+                    </div>
+                    <div id="scan-result" class="search-result" style="display:none;"></div>
+                </div>
+                <div style="margin-top:12px;">
+                    <label style="display:block;margin-bottom:4px;">选择会员：</label>
+                    <div style="position:relative;">
+                        <div style="display:flex;gap:8px;">
+                            <input type="text" id="member-search" placeholder="手机号/姓名搜索" class="layui-input" style="flex:1;">
+                            <button class="layui-btn layui-btn-primary" id="btn-search-member"><i class="layui-icon layui-icon-search"></i> 搜索</button>
+                        </div>
+                        <div id="member-result" class="search-result" style="display:none;"></div>
+                    </div>
+                    <div id="selected-member" style="margin-top:8px;color:#009688;font-weight:bold;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="layui-col-md8">
+        <div class="layui-card">
+            <div class="layui-card-header">购物车</div>
+            <div class="layui-card-body">
+                <table id="cart-table" lay-filter="cartTable"></table>
+
+                <script type="text/html" id="cartToolbar">
+                    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+                </script>
+                <script type="text/html" id="qtyTpl">
+                    <button class="layui-btn layui-btn-xs" lay-event="minus">-</button>
+                    <span style="padding:0 8px;">{{= d.quantity }}</span>
+                    <button class="layui-btn layui-btn-xs" lay-event="plus">+</button>
+                </script>
+                <div style="text-align:right;margin-top:15px;padding:10px;background:#f9f9f9;">
+                    <div>商品总数：<span id="total-qty">0</span>&nbsp;&nbsp;原价总金额：<span id="total-amount">0.00</span></div>
+                    <div id="discount-row" style="display:none;">折扣：<span id="discount-amount">0.00</span></div>
+                    <div style="font-size:20px;color:#FF5722;margin-top:5px;">实付金额：<span id="pay-amount">0.00</span></div>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:10px;text-align:right;">
+            <label style="margin-right:20px;"><input type="radio" name="pay_type" value="1" checked> 现金支付</label>
+            <label><input type="radio" name="pay_type" value="2" id="balance-pay"> 会员余额支付</label>
+            <button class="layui-btn layui-btn-lg" id="btn-checkout" style="background-color:#5FB878;margin-left:20px;">结 算</button>
+        </div>
+    </div>
+</div>
+{/block}
+
+{block name="style"}
+<style>
+.search-result {
+    position:absolute;top:42px;left:0;z-index:999;
+    background:#fff;width:100%;max-height:260px;overflow-y:auto;
+    border:1px solid #e6e6e6;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+.search-result .sr-item {
+    padding:8px 12px;border-bottom:1px solid #f0f0f0;
+    cursor:pointer;font-size:13px;line-height:1.5;
+}
+.search-result .sr-item:hover { background-color:#f2f2f2; }
+.search-result .sr-item:last-child { border-bottom:none; }
+.search-result .sr-item .sr-name { font-weight:bold; }
+.search-result .sr-item .sr-info { color:#999; }
+</style>
+{/block}
+
+{block name="script"}
+<script>
+var cart = [];
+var selectedMember = null;
+var goodsCache = {};
+
+function searchGoods() {
+    var keyword = $('#scan-input').val().trim();
+    if (keyword.length < 1) { $('#scan-result').hide().empty(); return; }
+    $.get('/cashier/searchGoods', {keyword: keyword}, function(res){
+        var $box = $('#scan-result');
+        if (res.code === 0 && res.data.length > 0) {
+            var html = '';
+            res.data.forEach(function(g, i){
+                goodsCache[i] = g;
+                html += '<div class="sr-item" data-gidx="' + i + '">';
+                html += '<div class="sr-name">' + g.barcode + ' | ' + g.name + (g.unit ? ' | ' + g.unit : '') + '</div>';
+                html += '<div class="sr-info">零售价：&yen;' + g.retail_price + ' | 库存：' + g.stock + '</div>';
+                html += '</div>';
+            });
+            $box.html(html).show();
+        } else {
+            $box.html('<div class="sr-item" style="color:#999;">未找到商品</div>').show();
+        }
+    });
+}
+
+$('#scan-input').on('keydown', function(e){
+    if (e.keyCode === 13) { e.preventDefault(); searchGoods(); }
+});
+$('#btn-search-goods').on('click', searchGoods);
+
+$('#scan-result').on('click', '.sr-item', function(){
+    var idx = parseInt($(this).data('gidx'));
+    if (isNaN(idx) || !goodsCache[idx]) return;
+    var g = goodsCache[idx];
+    var found = false;
+    cart.forEach(function(c){ if (c.barcode === g.barcode) { c.quantity++; found = true; } });
+    if (!found) {
+        cart.push({barcode: g.barcode, name: g.name, unit: g.unit || '', price: parseFloat(g.retail_price), quantity: 1, stock: g.stock});
+    }
+    renderCart();
+    $('#scan-result').hide().empty();
+    goodsCache = {};
+});
+
+function searchMember() {
+    var keyword = $('#member-search').val().trim();
+    if (keyword.length < 1) { $('#member-result').hide().empty(); return; }
+    $.get('/cashier/searchMember', {keyword: keyword}, function(res){
+        var $box = $('#member-result');
+        if (res.code === 0 && res.data.length > 0) {
+            var html = '';
+            res.data.forEach(function(m, i){
+                html += '<div class="sr-item" data-midx="' + i + '">';
+                html += '<div class="sr-name">' + m.name + ' | ' + m.phone + '</div>';
+                html += '<div class="sr-info">' + (m.discount*100).toFixed(0) + '%折 | 余额：&yen;' + m.balance + '</div>';
+                html += '</div>';
+            });
+            $box.html(html).show();
+            $box.data('members', res.data);
+        } else {
+            $box.html('<div class="sr-item" style="color:#999;">未找到会员</div>').show();
+        }
+    });
+}
+
+$('#member-search').on('keydown', function(e){
+    if (e.keyCode === 13) { e.preventDefault(); searchMember(); }
+});
+$('#btn-search-member').on('click', searchMember);
+
+$('#member-result').on('click', '.sr-item', function(){
+    var idx = parseInt($(this).data('midx'));
+    var members = $('#member-result').data('members') || [];
+    if (isNaN(idx) || !members[idx]) return;
+    var m = members[idx];
+    selectedMember = m;
+    $('#selected-member').html('已选会员：<strong>' + m.name + '</strong> | ' + m.phone + ' | ' + (m.discount*100).toFixed(0) + '%折 | 余额：&yen;' + m.balance);
+    $('#member-result').hide().empty();
+    $('#member-search').val('');
+    updateTotal();
+});
+
+$(document).on('click', function(e){
+    var t = e.target;
+    if (!$(t).closest('#scan-input, #btn-search-goods, #scan-result').length) {
+        $('#scan-result').hide().empty(); goodsCache = {};
+    }
+    if (!$(t).closest('#member-search, #btn-search-member, #member-result').length) {
+        $('#member-result').hide().empty();
+    }
+});
+
+function renderCart() {
+    layui.table.reload('cartTable', {data: cart});
+    updateTotal();
+}
+
+function updateTotal() {
+    var totalQty = 0, totalAmount = 0;
+    cart.forEach(function(c){ totalQty += c.quantity; totalAmount += c.price * c.quantity; });
+    $('#total-qty').text(totalQty);
+    $('#total-amount').text(totalAmount.toFixed(2));
+    var discount = selectedMember ? selectedMember.discount : 1;
+    var payAmount = (totalAmount * discount).toFixed(2);
+    var discountAmount = (totalAmount - payAmount).toFixed(2);
+    if (discount < 1) {
+        $('#discount-row').show().find('#discount-amount').text(discountAmount);
+    } else {
+        $('#discount-row').hide();
+    }
+    $('#pay-amount').text(payAmount);
+}
+
+$('#btn-checkout').on('click', function(){
+    if (cart.length === 0) { layer.msg('购物车为空'); return; }
+    var payType = $('input[name=pay_type]:checked').val();
+    if (payType == 2 && (!selectedMember || !selectedMember.id)) { layer.msg('会员余额支付需要选择会员'); return; }
+
+    var loading = layer.load();
+    $.post('/cashier/doCheckout', {
+        items: JSON.stringify(cart),
+        pay_type: payType,
+        member_id: selectedMember ? selectedMember.id : 0
+    }, function(res){
+        layer.close(loading);
+        if (res.code === 0) {
+            layer.alert('结算成功！订单号：' + res.data.order_no, {icon: 1}, function(){
+                cart = [];
+                selectedMember = null;
+                $('#selected-member').html('');
+                $('input[name=pay_type][value=1]').prop('checked', true);
+                renderCart();
+            });
+        } else {
+            layer.msg(res.msg, {icon: 2});
+        }
+    });
+});
+
+layui.use(['table'], function(){
+    var table = layui.table;
+    table.render({
+        elem: '#cart-table',
+        id: 'cartTable',
+        data: [],
+        cols: [[
+            {field: 'barcode', title: '条码', width: 120},
+            {field: 'name', title: '商品名称', width: 130},
+            {field: 'unit', title: '单位', width: 60},
+            {field: 'price', title: '单价', width: 70},
+            {field: 'quantity', title: '数量', width: 110, templet: '#qtyTpl'},
+            {field: 'subtotal', title: '小计', width: 80, templet: function(d){ return (d.price * d.quantity).toFixed(2); }},
+            {title: '操作', toolbar: '#cartToolbar', width: 60}
+        ]]
+    });
+
+    table.on('tool(cartTable)', function(obj){
+        if (obj.event === 'del') {
+            var index = cart.indexOf(obj.data);
+            if (index > -1) { cart.splice(index, 1); renderCart(); }
+        } else if (obj.event === 'minus') {
+            if (obj.data.quantity > 1) { obj.data.quantity--; renderCart(); }
+        } else if (obj.event === 'plus') {
+            if (obj.data.quantity < obj.data.stock) { obj.data.quantity++; renderCart(); }
+            else { layer.msg('库存不足，当前库存：' + obj.data.stock); }
+        }
+    });
+});
+</script>
+{/block}

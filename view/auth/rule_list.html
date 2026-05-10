@@ -1,0 +1,101 @@
+﻿﻿﻿﻿﻿﻿﻿﻿{extend name="layout" /}
+{block name="content"}
+<div class="toolbar">
+    <button class="layui-btn layui-btn-primary" onclick="openRuleEdit(0)"><i class="layui-icon layui-icon-add-1"></i> 新增顶级菜单</button>
+</div>
+<table id="rule-table" lay-filter="ruleTable"></table>
+
+<script type="text/html" id="toolbar">
+    <a class="layui-btn layui-btn-xs layui-btn-primary" lay-event="addChild">添加子菜单</a>
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+</script>
+{/block}
+
+{block name="script"}
+<script>
+var ruleData = {:json_encode($rules, JSON_UNESCAPED_UNICODE)};
+var ruleFlat = [];
+function flattenRules(rules, level) {
+    level = level || 0;
+    rules.forEach(function(r){
+        r.level = level;
+        r.title_display = new Array(level + 1).join('\u00A0\u00A0\u00A0\u00A0') + (level > 0 ? '├─ ' : '') + r.title;
+        ruleFlat.push(r);
+        if (r.children && r.children.length > 0) {
+            flattenRules(r.children, level + 1);
+        }
+    });
+}
+flattenRules(ruleData);
+
+layui.use(['table'], function(){
+    var table = layui.table;
+    table.render({
+        elem: '#rule-table',
+        data: ruleFlat,
+        cols: [[
+            {field: 'title_display', title: '菜单名称', width: 300},
+            {field: 'name', title: '权限标识', width: 200},
+            {field: 'icon', title: '图标', width: 150},
+            {field: 'sort', title: '排序', width: 80},
+            {title: '操作', toolbar: '#toolbar', width: 220}
+        ]],
+        page: false
+    });
+
+    table.on('tool(ruleTable)', function(obj){
+        var data = obj.data;
+        if (obj.event === 'del') {
+            layer.confirm('确认删除该菜单及其子菜单？', function(index){
+                $.post('/auth/ruleDelete', {id: data.id}, function(res){
+                    if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                    else { layer.msg(res.msg, {icon:2}); }
+                });
+                layer.close(index);
+            });
+        } else if (obj.event === 'addChild') {
+            openRuleEdit(data.id);
+        } else if (obj.event === 'edit') {
+            openRuleEdit(data.pid, data);
+        }
+    });
+});
+
+window.openRuleEdit = function(pid, data){
+    var isEdit = !!data;
+    var options = ruleFlat.map(function(r){ return '<option value="'+r.id+'" ' + (r.id === pid ? 'selected' : '') + '>' + r.title_display.replace(/\u00A0/g,'').replace(/├─ /g,'') + '</option>'; });
+    var html = '<div style="padding:20px;">\
+        <div class="layui-form-item"><label class="layui-form-label">上级菜单</label><div class="layui-input-block"><select name="pid"><option value="0">顶级菜单</option>' + options.join('') + '</select></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">菜单标题</label><div class="layui-input-block"><input type="text" name="title" value="'+(isEdit?data.title:'')+'" class="layui-input"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">权限标识</label><div class="layui-input-block"><input type="text" name="name" value="'+(isEdit?data.name:'')+'" class="layui-input" placeholder="如 Goods/index"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">图标</label><div class="layui-input-block"><input type="text" name="icon" value="'+(isEdit?data.icon:'')+'" class="layui-input" placeholder="layui-icon-xxx"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">排序</label><div class="layui-input-block"><input type="number" name="sort" value="'+(isEdit?data.sort||0:'')+'" class="layui-input"></div></div>\
+    </div>';
+    layer.open({
+        type: 1,
+        title: isEdit ? '编辑菜单' : '新增菜单',
+        area: ['500px', '380px'],
+        content: html,
+        btn: ['保存', '取消'],
+        yes: function(index, layero){
+            var form = layui.$(layero);
+            var postData = {
+                id: isEdit ? data.id : 0,
+                pid: form.find('[name=pid]').val(),
+                title: form.find('[name=title]').val(),
+                name: form.find('[name=name]').val(),
+                icon: form.find('[name=icon]').val(),
+                sort: form.find('[name=sort]').val()
+            };
+            var url = isEdit ? '/auth/ruleEdit' : '/auth/ruleAdd';
+            $.post(url, postData, function(res){
+                if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                else { layer.msg(res.msg, {icon:2}); }
+            });
+            layer.close(index);
+        }
+    });
+};
+</script>
+{/block}

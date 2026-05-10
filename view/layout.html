@@ -1,0 +1,192 @@
+﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>便利店零售管理系统</title>
+    <link rel="stylesheet" href="{__LAYUI__}/css/layui.css">
+    <style>
+        body, html { height: 100%; margin: 0; }
+        .layui-layout-admin .layui-header { background-color: #23262E; }
+        .layui-layout-admin .layui-side { top: 60px; }
+        .layui-layout-admin .layui-body { top: 60px; bottom: 0; }
+        .layui-logo { color: #fff; font-size: 18px; }
+        .layui-nav .layui-nav-item a { color: #fff; }
+        .layui-nav .layui-this:after, .layui-nav-bar { background-color: #5FB878; }
+        .layui-nav-tree .layui-nav-child dd.layui-this, .layui-nav-tree .layui-nav-child dd.layui-this a, .layui-nav-tree .layui-this, .layui-nav-tree .layui-this>a, .layui-nav-tree .layui-this>a:hover { background-color: #009688; }
+        .layui-layout-right { float: right !important; }
+        .body-main { padding: 15px; }
+        .search-form { padding: 10px 0; }
+        .search-form .layui-inline { margin-bottom: 5px; }
+        .toolbar { margin-bottom: 10px; }
+        .breadcrumb { display: inline-block; vertical-align: middle; line-height: 60px; margin-left: 20px; color: rgba(255,255,255,.7); font-size: 14px; }
+        .breadcrumb a { color: rgba(255,255,255,.7); text-decoration: none; }
+        .breadcrumb a:hover { color: #5FB878; }
+        .breadcrumb .layui-icon { font-size: 12px; margin: 0 6px; color: rgba(255,255,255,.4); }
+        .breadcrumb .current { color: #fff; }
+        .search-result { position: absolute; z-index: 999; background: #fff; border: 1px solid #e6e6e6; border-radius: 3px; max-height: 250px; overflow-y: auto; width: 250px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+        .search-result .goods-item { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer; font-size: 13px; }
+        .search-result .goods-item:hover { background-color: #f2f2f2; }
+        .search-result .goods-item:last-child { border-bottom: none; }
+    </style>
+    {block name="style"}{/block}
+</head>
+<body>
+<div class="layui-layout layui-layout-admin">
+    <div class="layui-header">
+        <div class="layui-logo layui-hide-xs layui-bg-black">便利店管理系统</div>
+        <span class="breadcrumb" id="breadcrumb">
+            <a href="/index/index"><i class="layui-icon layui-icon-home"></i> 首页</a>
+        </span>
+        <ul class="layui-nav layui-layout-right">
+            <li class="layui-nav-item">
+                <a href="javascript:;" style="color:#fff;">{$admin_username}</a>
+                <dl class="layui-nav-child">
+                    <dd><a href="/login/doLogout" style="color:#333;">退出登录</a></dd>
+                </dl>
+            </li>
+        </ul>
+    </div>
+
+    <div class="layui-side layui-bg-black">
+        <div class="layui-side-scroll">
+            <ul class="layui-nav layui-nav-tree" lay-filter="side-nav">
+            </ul>
+        </div>
+    </div>
+
+    <div class="layui-body">
+        <div class="body-main">
+            {block name="content"}{/block}
+        </div>
+    </div>
+</div>
+
+<script src="{__LAYUI__}/layui.js"></script>
+<script>
+var ALL_MENUS = {:json_encode($menus, JSON_UNESCAPED_UNICODE)};
+var $ = layui.$;
+window.$ = $;
+
+layui.use(['element', 'jquery'], function(){
+    var element = layui.element;
+
+    element.render('nav');
+
+    $(document).on('click', '.layui-nav-tree a[data-url]', function(){
+        var url = $(this).data('url');
+        if (url && url !== '#') {
+            window.location.href = url;
+        }
+    });
+
+    function getCurrentPath() {
+        var path = window.location.pathname;
+        if (path === '/' || path === '/index/index') return ['首页'];
+        path = path.replace(/^\//, '').replace(/\/$/, '');
+        return path.split('/');
+    }
+
+    function findBreadcrumb(menus, pathParts, trail) {
+        trail = trail || [];
+        var targetController = pathParts[0];
+        var targetAction = pathParts[1] || 'index';
+        var target = targetController + '/' + targetAction;
+
+        for (var i = 0; i < menus.length; i++) {
+            var m = menus[i];
+            if (m.url) {
+                var menuPath = m.url.replace(/^\//, '').replace(/\/$/, '');
+                if (menuPath === target) {
+                    trail.push(m.title);
+                    return trail;
+                }
+            }
+            if (m.children && m.children.length > 0) {
+                for (var j = 0; j < m.children.length; j++) {
+                    var child = m.children[j];
+                    if (child.url) {
+                        var childPath = child.url.replace(/^\//, '').replace(/\/$/, '');
+                        if (childPath === target) {
+                            if (m.title) trail.push(m.title);
+                            trail.push(child.title);
+                            return trail;
+                        }
+                    }
+                }
+            }
+        }
+        return trail;
+    }
+
+    function buildBreadcrumb() {
+        if (window.location.pathname === '/' || window.location.pathname === '/index/index') {
+            $('#breadcrumb').html('<a href="/index/index"><i class="layui-icon layui-icon-home"></i> 首页</a>');
+            return;
+        }
+
+        var pathParts = getCurrentPath();
+        var trail = findBreadcrumb(ALL_MENUS, pathParts);
+
+        var html = '<a href="/index/index"><i class="layui-icon layui-icon-home"></i> 首页</a>';
+        for (var i = 0; i < trail.length; i++) {
+            html += '<i class="layui-icon layui-icon-right"></i>';
+            if (i === trail.length - 1) {
+                html += '<span class="current">' + trail[i] + '</span>';
+            } else {
+                html += '<a href="javascript:;">' + trail[i] + '</a>';
+            }
+        }
+        $('#breadcrumb').html(html);
+    }
+
+    function loadSideNav() {
+        var $sideNav = $('.layui-nav-tree');
+        $sideNav.empty();
+
+        ALL_MENUS.forEach(function(item){
+            if (item.children && item.children.length > 0) {
+                var $li = $('<li class="layui-nav-item"></li>');
+                var $a = $('<a href="javascript:;">' + (item.icon ? '<i class="' + item.icon + '"></i> ' : '') + item.title + '</a>');
+                $li.append($a);
+                var $dl = $('<dl class="layui-nav-child"></dl>');
+                item.children.forEach(function(child){
+                    var $dd = $('<dd><a href="javascript:;" data-url="' + child.url + '">' + child.title + '</a></dd>');
+                    $dl.append($dd);
+                });
+                $li.append($dl);
+                $sideNav.append($li);
+            } else if (item.url && item.url !== '#') {
+                var $li = $('<li class="layui-nav-item"><a href="javascript:;" data-url="' + item.url + '">' + (item.icon ? '<i class="' + item.icon + '"></i> ' : '') + item.title + '</a></li>');
+                $sideNav.append($li);
+            }
+        });
+
+        element.render('nav');
+        buildBreadcrumb();
+        highlightCurrentNav();
+    }
+
+    function highlightCurrentNav() {
+        var path = window.location.pathname.replace(/^\//, '').replace(/\/$/, '');
+        if (!path || path === 'index/index') return;
+        var $link = $('.layui-nav-tree a[data-url]').filter(function(){
+            return $(this).data('url') && $(this).data('url').replace(/^\//, '').replace(/\/$/, '') === path;
+        });
+        if ($link.length > 0) {
+            var $dd = $link.parent('dd');
+            if ($dd.length > 0) {
+                $dd.addClass('layui-this');
+                $dd.parents('.layui-nav-item').addClass('layui-nav-itemed');
+            }
+        }
+    }
+
+    loadSideNav();
+});
+
+var ADMIN = {:json_encode($admin, JSON_UNESCAPED_UNICODE)};
+</script>
+{block name="script"}{/block}
+</body>
+</html>

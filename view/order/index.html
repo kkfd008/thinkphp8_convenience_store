@@ -1,0 +1,60 @@
+﻿﻿﻿﻿﻿﻿﻿{extend name="layout" /}
+{block name="content"}
+<div class="search-form">
+    <div class="layui-inline"><input type="text" id="search-keyword" placeholder="订单号" class="layui-input" value="{$keyword|default=''}"></div>
+    <div class="layui-inline"><input type="text" id="search-start" placeholder="开始日期" class="layui-input" value="{$start_date|default=''}"></div>
+    <div class="layui-inline"><input type="text" id="search-end" placeholder="结束日期" class="layui-input" value="{$end_date|default=''}"></div>
+    <div class="layui-inline"><button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button></div>
+    <div class="layui-inline layui-right"><button class="layui-btn layui-btn-primary" onclick="exportData()"><i class="layui-icon layui-icon-export"></i> 导出</button></div>
+</div>
+<table id="order-table" lay-filter="orderTable"></table>
+
+<script type="text/html" id="toolbar">
+    <a class="layui-btn layui-btn-xs" lay-event="detail">查看明细</a>
+</script>
+{/block}
+
+{block name="script"}
+<script>
+var orderList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
+
+layui.use(['table', 'laydate'], function(){
+    var table = layui.table;
+    layui.laydate.render({elem: '#search-start'});
+    layui.laydate.render({elem: '#search-end'});
+
+    table.render({
+        elem: '#order-table',
+        data: orderList,
+        cols: [[
+            {field: 'order_no', title: '订单号', width: 170},
+            {field: 'total_amount', title: '原价', width: 80},
+            {field: 'discount_amount', title: '折扣', width: 80},
+            {field: 'pay_amount', title: '实付', width: 80},
+            {field: 'pay_type', title: '支付方式', width: 90, templet: function(d){ return d.pay_type == 1 ? '现金' : '会员余额'; }},
+            {field: 'member_name', title: '会员', width: 100, templet: function(d){ return d.member_name || '-'; }},
+            {field: 'create_time', title: '时间', width: 170, templet: function(d){ return new Date(d.create_time * 1000).toLocaleString(); }},
+            {title: '操作', toolbar: '#toolbar', width: 80}
+        ]],
+        page: false
+    });
+
+    table.on('tool(orderTable)', function(obj){
+        if (obj.event === 'detail') location.href = '/order/detail?id=' + obj.data.id;
+    });
+});
+
+window.doSearch = function(){
+    var params = [];
+    var keyword = $('#search-keyword').val();
+    if (keyword) params.push('keyword=' + encodeURIComponent(keyword));
+    var start = $('#search-start').val();
+    if (start) params.push('start_date=' + start);
+    var end = $('#search-end').val();
+    if (end) params.push('end_date=' + end);
+    location.href = '/order/index' + (params.length ? '?' + params.join('&') : '');
+};
+
+window.exportData = function(){ location.href = '/order/export'; };
+</script>
+{/block}

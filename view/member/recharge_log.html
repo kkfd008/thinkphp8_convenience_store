@@ -1,0 +1,51 @@
+﻿﻿﻿﻿﻿﻿﻿{extend name="layout" /}
+{block name="content"}
+<div class="search-form">
+    <div class="layui-inline">
+        <select id="search-member"><option value="">全部会员</option>
+            {foreach $members as $m}<option value="{$m.id}" {if isset($member_id) && $member_id==$m.id}selected{/if}>{$m.name} ({$m.phone})</option>{/foreach}
+        </select>
+    </div>
+    <div class="layui-inline"><input type="text" id="search-start" placeholder="开始日期" class="layui-input" value="{$start_date|default=''}"></div>
+    <div class="layui-inline"><input type="text" id="search-end" placeholder="结束日期" class="layui-input" value="{$end_date|default=''}"></div>
+    <div class="layui-inline"><button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button></div>
+</div>
+<table id="log-table" lay-filter="logTable"></table>
+{/block}
+
+{block name="script"}
+<script>
+var logList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
+
+layui.use(['table', 'laydate'], function(){
+    var table = layui.table;
+    layui.laydate.render({elem: '#search-start'});
+    layui.laydate.render({elem: '#search-end'});
+
+    table.render({
+        elem: '#log-table',
+        data: logList,
+        cols: [[
+            {field: 'member_name', title: '会员', width: 100},
+            {field: 'member_phone', title: '手机号', width: 120},
+            {field: 'amount', title: '充值金额', width: 100},
+            {field: 'before_balance', title: '充值前余额', width: 110},
+            {field: 'after_balance', title: '充值后余额', width: 110},
+            {field: 'create_time', title: '充值时间', width: 170, templet: function(d){ return d.create_time ? new Date(d.create_time * 1000).toLocaleString() : '-'; }}
+        ]],
+        page: false
+    });
+});
+
+window.doSearch = function(){
+    var params = [];
+    var member = $('#search-member').val();
+    if (member) params.push('member_id=' + member);
+    var start = $('#search-start').val();
+    if (start) params.push('start_date=' + start);
+    var end = $('#search-end').val();
+    if (end) params.push('end_date=' + end);
+    location.href = '/member/rechargeLog' + (params.length ? '?' + params.join('&') : '');
+};
+</script>
+{/block}

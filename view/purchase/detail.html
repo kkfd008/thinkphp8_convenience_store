@@ -1,0 +1,36 @@
+{extend name="layout" /}
+{block name="content"}
+<div class="layui-card">
+    <div class="layui-card-header">进货单信息</div>
+    <div class="layui-card-body">
+        <table class="layui-table">
+            <tr><td width="100">进货单号</td><td>{$purchase.purchase_no}</td><td width="100">供货商</td><td>{$purchase.supplier_name|default='-'}</td></tr>
+            <tr><td>总金额</td><td>&yen;{$purchase.total_amount}</td><td>总数量</td><td>{$purchase.total_goods_num}</td></tr>
+            <tr><td>备注</td><td colspan="3">{$purchase.remark|default='-'}</td></tr>
+            <tr><td>进货时间</td><td colspan="3">{:date('Y-m-d H:i:s', $purchase.create_time)}</td></tr>
+        </table>
+    </div>
+</div>
+
+<div class="layui-card" style="margin-top:15px;">
+    <div class="layui-card-header">进货明细</div>
+    <div class="layui-card-body">
+        <table class="layui-table">
+            <thead>
+                <tr><th>条码</th><th>商品名称</th><th>单位</th><th>进价</th><th>售价</th><th>箱规</th><th>箱数</th><th>散件</th><th>数量</th><th>成本</th><th>销售金额</th></tr>
+            </thead>
+            <tbody>
+                {foreach $details as $d}
+                <tr>
+                    <td>{$d.barcode}</td><td>{$d.goods_name}</td><td>{$d.unit|default='-'}</td><td>&yen;{$d.purchase_price}</td><td>&yen;{$d.retail_price}</td>
+                    <td>{$d.box_spec}</td><td>{$d.box_count}</td><td>{$d.piece_count}</td>
+                    <td>{:intval($d.box_spec) * intval($d.box_count) + intval($d.piece_count)}</td>
+                    <td>&yen;{:number_format(floatval($d.purchase_price) * (intval($d.box_spec) * intval($d.box_count) + intval($d.piece_count)), 2)}</td>
+                    <td>&yen;{:number_format(floatval($d.retail_price) * (intval($d.box_spec) * intval($d.box_count) + intval($d.piece_count)), 2)}</td>
+                </tr>
+                {/foreach}
+            </tbody>
+        </table>
+    </div>
+</div>
+{/block}
