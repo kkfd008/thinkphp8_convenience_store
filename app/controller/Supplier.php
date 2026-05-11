@@ -131,6 +131,8 @@ class Supplier extends BaseController
 
         $successCount = 0;
         $failList = [];
+        $existNames = array_column(Db::name('supplier')->field('name')->select()->toArray(), 'name');
+        $importedNames = [];
 
         foreach ($rows as $i => $row) {
             $name    = trim($row[0] ?? '');
@@ -144,6 +146,11 @@ class Supplier extends BaseController
                 $failList[] = "第" . ($i + 2) . "行：名称不能为空";
                 continue;
             }
+            if (in_array($name, $existNames, true) || in_array($name, $importedNames, true)) {
+                $failList[] = "第" . ($i + 2) . "行：名称 {$name} 已存在";
+                continue;
+            }
+            $importedNames[] = $name;
 
             Db::name('supplier')->insert([
                 'name'        => $name,
@@ -170,54 +177,4 @@ class Supplier extends BaseController
         $this->downloadExcel($headers, [], '供货商导入模板');
     }
 
-    private function getMenus()
-    {
-        $admin = session('admin_user');
-        $role = Db::name('role')->where('id', $admin['role_id'])->find();
-        $rulesArr = $role && !empty($role['rules']) ? explode(',', $role['rules']) : [];
-        $allRules = Db::name('auth_rule')->order('sort asc, id asc')->select()->toArray();
-        return $this->buildMenuTree($allRules, 0, $rulesArr);
-    }
-
-    private function buildMenuTree($rules, $pid, $allowedRules)
-    {
-        $tree = [];
-        foreach ($rules as $rule) {
-            if ($rule['pid'] == $pid) {
-                if (!in_array((string)$rule['id'], $allowedRules, true)) continue;
-                $item = [
-                    'title' => $rule['title'],
-                    'icon'  => $rule['icon'] ?? '',
-                    'url'   => !empty($rule['name']) ? url($rule['name'])->build() : '#',
-                ];
-                $children = $this->buildMenuTree($rules, $rule['id'], $allowedRules);
-                if (!empty($children)) $item['children'] = $children;
-                $tree[] = $item;
-            }
-        }
-        return $tree;
-    }
-
-    private function downloadExcel($headers, $data, $filename)
-    {
-        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-
-        foreach ($headers as $i => $h) {
-            $sheet->setCellValue([$i + 1, 1], $h);
-        }
-        foreach ($data as $ri => $row) {
-            foreach ($row as $ci => $val) {
-                $sheet->setCellValue([$ci + 1, $ri + 2], $val);
-            }
-        }
-
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $filename . '.xlsx"');
-        header('Cache-Control: max-age=0');
-
-        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-        $writer->save('php://output');
-        exit;
-    }
 }

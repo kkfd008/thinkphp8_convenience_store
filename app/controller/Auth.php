@@ -188,33 +188,6 @@ class Auth extends BaseController
         return $this->jsonSuccess([], '删除成功');
     }
 
-    private function getMenus()
-    {
-        $admin   = session('admin_user');
-        $role    = Db::name('role')->where('id', $admin['role_id'])->find();
-        $rulesArr = $role && !empty($role['rules']) ? explode(',', $role['rules']) : [];
-        $allRules = Db::name('auth_rule')->order('sort asc, id asc')->select()->toArray();
-        return $this->buildMenuTree($allRules, 0, $rulesArr);
-    }
-
-    private function buildMenuTree($rules, $pid, $allowedRules)
-    {
-        $tree = [];
-        foreach ($rules as $rule) {
-            if ($rule['pid'] == $pid) {
-                if (!in_array((string)$rule['id'], $allowedRules, true)) continue;
-                $item = [
-                    'title' => $rule['title'],
-                    'icon'  => $rule['icon'] ?? '',
-                    'url'   => !empty($rule['name']) ? url($rule['name'])->build() : '#',
-                ];
-                $children = $this->buildMenuTree($rules, $rule['id'], $allowedRules);
-                if (!empty($children)) $item['children'] = $children;
-                $tree[] = $item;
-            }
-        }
-        return $tree;
-    }
 
     private function buildRuleTree($rules, $pid = 0)
     {

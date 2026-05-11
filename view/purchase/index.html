@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿{extend name="layout" /}
+{extend name="layout" /}
 {block name="content"}
 <div class="search-form">
     <div class="layui-inline">
@@ -124,7 +124,7 @@ window.importExcel = function(){
                     exts: 'xls|xlsx',
                     done: function(res){
                         var html = res.code === 0
-                            ? '成功：' + res.data.success + ' 条，失败：' + res.data.fail + ' 条' + (res.data.details.length > 0 ? '<br>' + res.data.details.join('<br>') : '')
+                            ? '成功：' + res.data.orders + ' 张进货单，' + res.data.items + ' 种商品，失败：' + res.data.fail + ' 条' + (res.data.details.length > 0 ? '<br>' + res.data.details.join('<br>') : '')
                             : '<span style="color:red;">' + res.msg + '</span>';
                         $('#import-result').html('<div style="padding:10px;border:1px solid #ddd;border-radius:3px;">' + html + '</div>');
                     }

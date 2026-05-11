@@ -18,7 +18,7 @@ class Index extends BaseController
         if (!$admin) {
             return redirect('/login');
         }
-        $menus = $this->buildMenus($admin);
+        $menus = $this->getMenus();
 
         $todayStart = strtotime(date('Y-m-d'));
 
@@ -73,42 +73,4 @@ class Index extends BaseController
         return View::fetch();
     }
 
-    private function buildMenus($admin)
-    {
-        $role = Db::name('role')->where('id', $admin['role_id'])->find();
-        $rulesArr = [];
-        if ($role && !empty($role['rules'])) {
-            $rulesArr = explode(',', $role['rules']);
-        }
-
-        $allRules = Db::name('auth_rule')->order('sort asc, id asc')->select()->toArray();
-        $tree = $this->buildTree($allRules, 0, $rulesArr);
-
-        return $tree;
-    }
-
-    private function buildTree($rules, $pid, $allowedRules)
-    {
-        $tree = [];
-        foreach ($rules as $rule) {
-            if ($rule['pid'] == $pid) {
-                if (!in_array((string)$rule['id'], $allowedRules, true)) {
-                    continue;
-                }
-                $item = [
-                    'title' => $rule['title'],
-                    'icon'  => $rule['icon'] ?? '',
-                    'url'   => !empty($rule['name']) ? url($rule['name'])->build() : '#',
-                ];
-
-                $children = $this->buildTree($rules, $rule['id'], $allowedRules);
-                if (!empty($children)) {
-                    $item['children'] = $children;
-                }
-
-                $tree[] = $item;
-            }
-        }
-        return $tree;
-    }
 }

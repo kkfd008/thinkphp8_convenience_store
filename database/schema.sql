@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS goods (
     cate VARCHAR(50) DEFAULT '',
     create_time INTEGER DEFAULT 0
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_goods_barcode ON goods(barcode);
 
 -- 6. purchase（进货主表）
 CREATE TABLE IF NOT EXISTS purchase (
@@ -66,6 +67,7 @@ CREATE TABLE IF NOT EXISTS purchase (
     remark TEXT DEFAULT '',
     create_time INTEGER DEFAULT 0
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_purchase_no ON purchase(purchase_no);
 
 -- 7. purchase_detail（进货明细表）
 CREATE TABLE IF NOT EXISTS purchase_detail (
@@ -96,6 +98,7 @@ CREATE TABLE IF NOT EXISTS [order] (
     remark VARCHAR(255) DEFAULT '',
     create_time INTEGER DEFAULT 0
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_order_no ON [order](order_no);
 
 -- 9. order_detail（订单明细表）
 CREATE TABLE IF NOT EXISTS order_detail (

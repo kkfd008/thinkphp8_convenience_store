@@ -67,13 +67,43 @@ class Purchase extends BaseController
         $data = $this->request->post();
 
         $supplierId = intval($data['supplier_id'] ?? 0);
-        $items      = json_decode($data['items'] ?? '[]', true);
+        $itemsStr   = $data['items'] ?? '[]';
+        $items      = json_decode($itemsStr, true);
 
         if ($supplierId <= 0) {
             return $this->jsonError('请选择供货商');
         }
-        if (empty($items)) {
+        if (empty($items) || !is_array($items)) {
             return $this->jsonError('请添加进货明细');
+        }
+
+        $totalAmount   = 0;
+        $totalGoodsNum = 0;
+
+        foreach ($items as $i => &$item) {
+            $purchasePrice = floatval($item['purchase_price'] ?? 0);
+            $retailPrice   = floatval($item['retail_price'] ?? 0);
+            $boxSpec       = intval($item['box_spec'] ?? 0);
+            $boxCount      = intval($item['box_count'] ?? 0);
+            $pieceCount    = intval($item['piece_count'] ?? 0);
+
+            if (empty($item['barcode'])) {
+                return $this->jsonError("第" . ($i + 1) . "项条码不能为空");
+            }
+            if ($purchasePrice < 0) {
+                return $this->jsonError("第" . ($i + 1) . "项进货价不能为负数");
+            }
+            if ($retailPrice < 0) {
+                return $this->jsonError("第" . ($i + 1) . "项零售价不能为负数");
+            }
+            if ($boxSpec < 0 || $boxCount < 0 || $pieceCount < 0) {
+                return $this->jsonError("第" . ($i + 1) . "项数量不能为负数");
+            }
+
+            $itemTotal = $purchasePrice * ($boxSpec * $boxCount + $pieceCount);
+            $item['total_amount'] = $itemTotal;
+            $totalAmount  += $itemTotal;
+            $totalGoodsNum += $boxSpec * $boxCount + $pieceCount;
         }
 
         $admin  = session('admin_user');
@@ -88,16 +118,6 @@ class Purchase extends BaseController
             $seq = 1;
         }
         $purchaseNo = 'JH' . $date . str_pad((string)$seq, 3, '0', STR_PAD_LEFT);
-
-        $totalAmount  = 0;
-        $totalGoodsNum = 0;
-
-        foreach ($items as &$item) {
-            $itemTotal = floatval($item['purchase_price']) * (intval($item['box_spec']) * intval($item['box_count']) + intval($item['piece_count']));
-            $item['total_amount'] = $itemTotal;
-            $totalAmount  += $itemTotal;
-            $totalGoodsNum += intval($item['box_spec']) * intval($item['box_count']) + intval($item['piece_count']);
-        }
 
         Db::startTrans();
         try {
@@ -199,14 +219,14 @@ class Purchase extends BaseController
             $goodsMap[$g['barcode']] = $g;
         }
 
-        $successCount = 0;
-        $failList     = [];
+        $failList = [];
+        $groups   = [];
 
         foreach ($rows as $i => $row) {
-            $supplierName = trim($row[0] ?? '');
-            $barcode      = trim($row[1] ?? '');
-            $goodsName    = trim($row[2] ?? '');
-            $unit         = trim($row[3] ?? '');
+            $supplierName  = trim($row[0] ?? '');
+            $barcode       = trim($row[1] ?? '');
+            $goodsName     = trim($row[2] ?? '');
+            $unit          = trim($row[3] ?? '');
             $purchasePrice = floatval($row[4] ?? 0);
             $retailPrice   = floatval($row[5] ?? 0);
             $boxSpec       = intval($row[6] ?? 0);
@@ -225,10 +245,47 @@ class Purchase extends BaseController
                 $failList[] = "第" . ($i + 2) . "行：条码 {$barcode} 不存在";
                 continue;
             }
+            if ($purchasePrice < 0) {
+                $failList[] = "第" . ($i + 2) . "行：进货价不能为负数";
+                continue;
+            }
+            if ($retailPrice < 0) {
+                $failList[] = "第" . ($i + 2) . "行：零售价不能为负数";
+                continue;
+            }
+            if ($boxSpec < 0 || $boxCount < 0 || $pieceCount < 0) {
+                $failList[] = "第" . ($i + 2) . "行：数量不能为负数";
+                continue;
+            }
 
             $goods = $goodsMap[$barcode];
+            $groups[$supplierName][] = [
+                'barcode'        => $barcode,
+                'goods_name'     => $goodsName ?: $goods['name'],
+                'unit'           => $unit,
+                'purchase_price' => $purchasePrice,
+                'retail_price'   => $retailPrice,
+                'box_spec'       => $boxSpec,
+                'box_count'      => $boxCount,
+                'piece_count'    => $pieceCount,
+            ];
+        }
+
+        $successOrders = 0;
+        $successItems  = 0;
+
+        foreach ($groups as $supplierName => $items) {
             $supplierId = $suppliers[$supplierName];
-            $total = $purchasePrice * ($boxSpec * $boxCount + $pieceCount);
+            $totalAmount   = 0;
+            $totalGoodsNum = 0;
+
+            foreach ($items as &$item) {
+                $itemTotal = $item['purchase_price'] * ($item['box_spec'] * $item['box_count'] + $item['piece_count']);
+                $item['total_amount'] = $itemTotal;
+                $totalAmount   += $itemTotal;
+                $totalGoodsNum += $item['box_spec'] * $item['box_count'] + $item['piece_count'];
+            }
+            unset($item);
 
             $date = date('Ymd');
             $maxNo = Db::name('purchase')->where('purchase_no', 'like', "JH{$date}%")->order('id desc')->value('purchase_no');
@@ -238,44 +295,50 @@ class Purchase extends BaseController
             Db::startTrans();
             try {
                 $purchaseId = Db::name('purchase')->insertGetId([
-                    'purchase_no'    => $purchaseNo,
-                    'supplier_id'    => $supplierId,
-                    'total_amount'   => $total,
-                    'total_goods_num'=> $boxSpec * $boxCount + $pieceCount,
-                    'operator_id'    => $admin['id'],
-                    'create_time'    => time(),
+                    'purchase_no'     => $purchaseNo,
+                    'supplier_id'     => $supplierId,
+                    'total_amount'    => $totalAmount,
+                    'total_goods_num' => $totalGoodsNum,
+                    'operator_id'     => $admin['id'],
+                    'create_time'     => time(),
                 ]);
 
-                Db::name('purchase_detail')->insert([
-                    'purchase_id'    => $purchaseId,
-                    'barcode'        => $barcode,
-                    'goods_name'     => $goodsName ?: $goods['name'],
-                    'unit'           => $unit,
-                    'purchase_price' => $purchasePrice,
-                    'retail_price'   => $retailPrice,
-                    'box_spec'       => $boxSpec,
-                    'box_count'      => $boxCount,
-                    'piece_count'    => $pieceCount,
-                    'total_amount'   => $total,
-                    'create_time'    => time(),
-                ]);
+                foreach ($items as $item) {
+                    Db::name('purchase_detail')->insert([
+                        'purchase_id'    => $purchaseId,
+                        'barcode'        => $item['barcode'],
+                        'goods_name'     => $item['goods_name'],
+                        'unit'           => $item['unit'],
+                        'purchase_price' => $item['purchase_price'],
+                        'retail_price'   => $item['retail_price'],
+                        'box_spec'       => $item['box_spec'],
+                        'box_count'      => $item['box_count'],
+                        'piece_count'    => $item['piece_count'],
+                        'total_amount'   => $item['total_amount'],
+                        'create_time'    => time(),
+                    ]);
 
-                Db::name('goods')->where('barcode', $barcode)
-                    ->inc('stock', $boxSpec * $boxCount + $pieceCount)
-                    ->update(['box_spec' => $boxSpec]);
+                    $stockAdd = $item['box_spec'] * $item['box_count'] + $item['piece_count'];
+                    Db::name('goods')->where('barcode', $item['barcode'])
+                        ->inc('stock', $stockAdd)
+                        ->update(['box_spec' => $item['box_spec']]);
+                }
+
                 Db::commit();
-                $successCount++;
+                $successOrders++;
+                $successItems += count($items);
             } catch (\Exception $e) {
                 Db::rollback();
-                $failList[] = "第" . ($i + 2) . "行：写入失败";
+                $failList[] = "供货商 {$supplierName} 写入失败：" . $e->getMessage();
             }
         }
 
         return $this->jsonSuccess([
-            'success' => $successCount,
+            'orders'  => $successOrders,
+            'items'   => $successItems,
             'fail'    => count($failList),
             'details' => $failList,
-        ], "导入完成");
+        ], "导入完成：{$successOrders}张进货单，{$successItems}种商品");
     }
 
     public function downloadTemplate()
@@ -504,47 +567,4 @@ class Purchase extends BaseController
         return $this->downloadExcel($headers, $data, '进货单列表');
     }
 
-    private function getMenus()
-    {
-        $admin = session('admin_user');
-        $role = Db::name('role')->where('id', $admin['role_id'])->find();
-        $rulesArr = $role && !empty($role['rules']) ? explode(',', $role['rules']) : [];
-        $allRules = Db::name('auth_rule')->order('sort asc, id asc')->select()->toArray();
-        return $this->buildMenuTree($allRules, 0, $rulesArr);
-    }
-
-    private function buildMenuTree($rules, $pid, $allowedRules)
-    {
-        $tree = [];
-        foreach ($rules as $rule) {
-            if ($rule['pid'] == $pid) {
-                if (!in_array((string)$rule['id'], $allowedRules, true)) continue;
-                $item = ['title' => $rule['title'], 'icon' => $rule['icon'] ?? '', 'url' => !empty($rule['name']) ? url($rule['name'])->build() : '#'];
-                $children = $this->buildMenuTree($rules, $rule['id'], $allowedRules);
-                if (!empty($children)) $item['children'] = $children;
-                $tree[] = $item;
-            }
-        }
-        return $tree;
-    }
-
-    private function downloadExcel($headers, $data, $filename)
-    {
-        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        foreach ($headers as $i => $h) {
-            $sheet->setCellValue([$i + 1, 1], $h);
-        }
-        foreach ($data as $ri => $row) {
-            foreach ($row as $ci => $val) {
-                $sheet->setCellValue([$ci + 1, $ri + 2], $val);
-            }
-        }
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $filename . '.xlsx"');
-        header('Cache-Control: max-age=0');
-        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-        $writer->save('php://output');
-        exit;
-    }
 }

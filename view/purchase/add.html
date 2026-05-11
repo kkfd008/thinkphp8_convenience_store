@@ -42,7 +42,6 @@
 {block name="script"}
 <script>
 var cartItems = [];
-var cartTable = null;
 
 function searchGoods() {
     var keyword = $('#goods-search').val();
@@ -51,7 +50,7 @@ function searchGoods() {
         if (res.code === 0 && res.data.length > 0) {
             var html = '';
             res.data.forEach(function(g){
-                html += '<div class="goods-item" data-item=' + JSON.stringify(g).replace(/"/g, "'") + ' onclick="addToCart(this)">' + g.barcode + ' | ' + g.name + (g.unit ? ' | ' + g.unit : '') + ' | 进:' + g.purchase_price + ' | 售:' + g.retail_price + '</div>';
+                html += '<div class="goods-item" data-barcode="' + g.barcode + '" data-name="' + g.name + '" data-unit="' + (g.unit || '') + '" data-purchase="' + g.purchase_price + '" data-retail="' + g.retail_price + '" onclick="addToCart(this)">' + g.barcode + ' | ' + g.name + (g.unit ? ' | ' + g.unit : '') + ' | 进:' + g.purchase_price + ' | 售:' + g.retail_price + '</div>';
             });
             $('#search-result').html(html).show();
         } else {
@@ -61,8 +60,13 @@ function searchGoods() {
 }
 
 window.addToCart = function(el) {
-    var itemStr = el.getAttribute('data-item').replace(/'/g, '"');
-    var goods = JSON.parse(itemStr);
+    var goods = {
+        barcode: el.getAttribute('data-barcode'),
+        name: el.getAttribute('data-name'),
+        unit: el.getAttribute('data-unit') || '',
+        purchase_price: parseFloat(el.getAttribute('data-purchase')),
+        retail_price: parseFloat(el.getAttribute('data-retail'))
+    };
     var found = false;
     cartItems.forEach(function(ci){
         if (ci.barcode === goods.barcode) { ci.box_count++; found = true; }
@@ -83,9 +87,7 @@ function renderCart(){
         return;
     }
     $('#cart-table').parent().find('.layui-table-view').show();
-    if (cartTable) {
-        cartTable.reloadData('cartTable', {data: cartItems});
-    }
+    layui.table.reload('cartTable', {data: cartItems});
     updateTotal();
 }
 
@@ -102,7 +104,6 @@ function updateTotal() {
 
 layui.use(['table', 'form'], function(){
     var table = layui.table;
-    cartTable = table;
     var form = layui.form;
     form.render('select');
 
@@ -135,7 +136,7 @@ layui.use(['table', 'form'], function(){
     table.on('edit(cartTable)', function(obj){
         obj.data[obj.field] = parseInt(obj.value) || 0;
         updateTotal();
-        table.reloadData('cartTable', {data: cartItems});
+        layui.table.reload('cartTable', {data: cartItems});
     });
 });
 

@@ -195,8 +195,9 @@ $('#btn-checkout').on('click', function(){
     if (payType == 2 && (!selectedMember || !selectedMember.id)) { layer.msg('会员余额支付需要选择会员'); return; }
 
     var loading = layer.load();
+    var postItems = cart.map(function(c){ return {barcode: c.barcode, quantity: c.quantity}; });
     $.post('/cashier/doCheckout', {
-        items: JSON.stringify(cart),
+        items: JSON.stringify(postItems),
         pay_type: payType,
         member_id: selectedMember ? selectedMember.id : 0
     }, function(res){
