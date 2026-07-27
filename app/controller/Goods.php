@@ -4,6 +4,7 @@ declare (strict_types=1);
 namespace app\controller;
 
 use app\BaseController;
+use app\service\BarcodeService;
 use think\facade\Db;
 use think\facade\View;
 
@@ -133,11 +134,9 @@ class Goods extends BaseController
 
     public function genBarcode()
     {
+        $barcodeService = new BarcodeService();
         do {
-            $barcode = '';
-            for ($i = 0; $i < 13; $i++) {
-                $barcode .= rand(0, 9);
-            }
+            $barcode = $barcodeService->generate();
             $exist = Db::name('goods')->where('barcode', $barcode)->find();
         } while ($exist);
 

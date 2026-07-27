@@ -4,6 +4,9 @@ declare (strict_types=1);
 namespace app\controller;
 
 use app\BaseController;
+use app\service\DiscountCalculator;
+use app\service\OrderNoService;
+use app\service\StockCalculator;
 use think\facade\Db;
 use think\facade\View;
 
@@ -79,26 +82,30 @@ class Cashier extends BaseController
             if (!$goods) {
                 return $this->jsonError("商品 {$item['barcode']} 不存在");
             }
-            if ($goods['stock'] < intval($item['quantity'])) {
+            $stockCalc = new StockCalculator();
+            if (!$stockCalc->isStockSufficient(intval($goods['stock']), intval($item['quantity']))) {
                 return $this->jsonError("商品 {$goods['name']} 库存不足（库存:{$goods['stock']}, 需要:{$item['quantity']}）");
             }
-            $subtotal = floatval($goods['retail_price']) * intval($item['quantity']);
+            $discountCalc = new DiscountCalculator();
+            $subtotal = $discountCalc->calcSubtotal(floatval($goods['retail_price']), intval($item['quantity']));
             $totalAmount += $subtotal;
         }
 
-        $payAmount = round($totalAmount * $discountRate, 2);
-        $discountAmount = round($totalAmount - $payAmount, 2);
+        $discountCalc = new DiscountCalculator();
+        $payAmount = $discountCalc->calcPayAmount($totalAmount, $discountRate);
+        $discountAmount = $discountCalc->calcDiscountAmount($totalAmount, $payAmount);
 
         if ($payType == 2 && $memberId > 0) {
-            if ($memberBalance < $payAmount) {
+            if (!$discountCalc->isBalanceSufficient($memberBalance, $payAmount)) {
                 return $this->jsonError('会员余额不足');
             }
         }
 
         $date = date('Ymd');
         $maxNo = Db::name('order')->where('order_no', 'like', "DD{$date}%")->order('id desc')->value('order_no');
-        $seq = $maxNo ? intval(substr($maxNo, -3)) + 1 : 1;
-        $orderNo = 'DD' . $date . str_pad((string)$seq, 3, '0', STR_PAD_LEFT);
+        $orderNoService = new OrderNoService();
+        $seq = $orderNoService->getNextSequence($maxNo);
+        $orderNo = $orderNoService->generateOrderNo($date, $seq);
 
         Db::startTrans();
         try {

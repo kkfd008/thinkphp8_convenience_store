@@ -4,6 +4,8 @@ declare (strict_types=1);
 namespace app\controller;
 
 use app\BaseController;
+use app\service\OrderNoService;
+use app\service\StockCalculator;
 use think\facade\Db;
 use think\facade\View;
 
@@ -100,10 +102,11 @@ class Purchase extends BaseController
                 return $this->jsonError("第" . ($i + 1) . "项数量不能为负数");
             }
 
-            $itemTotal = $purchasePrice * ($boxSpec * $boxCount + $pieceCount);
+            $stockCalc = new StockCalculator();
+            $itemTotal = $stockCalc->calcPurchaseItemTotal($purchasePrice, $boxSpec, $boxCount, $pieceCount);
             $item['total_amount'] = $itemTotal;
             $totalAmount  += $itemTotal;
-            $totalGoodsNum += $boxSpec * $boxCount + $pieceCount;
+            $totalGoodsNum += $stockCalc->calcPurchaseAdd($boxSpec, $boxCount, $pieceCount);
         }
 
         $admin  = session('admin_user');
@@ -112,12 +115,9 @@ class Purchase extends BaseController
             ->where('purchase_no', 'like', "JH{$date}%")
             ->order('id desc')->value('purchase_no');
 
-        if ($maxNo) {
-            $seq = intval(substr($maxNo, -3)) + 1;
-        } else {
-            $seq = 1;
-        }
-        $purchaseNo = 'JH' . $date . str_pad((string)$seq, 3, '0', STR_PAD_LEFT);
+        $orderNoService = new OrderNoService();
+        $seq = $orderNoService->getNextSequence($maxNo);
+        $purchaseNo = $orderNoService->generatePurchaseNo($date, $seq);
 
         Db::startTrans();
         try {
@@ -146,7 +146,12 @@ class Purchase extends BaseController
                     'create_time'    => time(),
                 ]);
 
-                $stockAdd = intval($item['box_spec']) * intval($item['box_count']) + intval($item['piece_count']);
+                $stockCalc2 = new StockCalculator();
+                $stockAdd = $stockCalc2->calcPurchaseAdd(
+                    intval($item['box_spec']),
+                    intval($item['box_count']),
+                    intval($item['piece_count'])
+                );
                 $boxSpec = intval($item['box_spec']);
                 Db::name('goods')->where('barcode', $item['barcode'])
                     ->inc('stock', $stockAdd)
@@ -280,17 +285,21 @@ class Purchase extends BaseController
             $totalGoodsNum = 0;
 
             foreach ($items as &$item) {
-                $itemTotal = $item['purchase_price'] * ($item['box_spec'] * $item['box_count'] + $item['piece_count']);
+                $stockCalc = new StockCalculator();
+                $itemTotal = $stockCalc->calcPurchaseItemTotal(
+                    $item['purchase_price'], $item['box_spec'], $item['box_count'], $item['piece_count']
+                );
                 $item['total_amount'] = $itemTotal;
                 $totalAmount   += $itemTotal;
-                $totalGoodsNum += $item['box_spec'] * $item['box_count'] + $item['piece_count'];
+                $totalGoodsNum += $stockCalc->calcPurchaseAdd($item['box_spec'], $item['box_count'], $item['piece_count']);
             }
             unset($item);
 
             $date = date('Ymd');
             $maxNo = Db::name('purchase')->where('purchase_no', 'like', "JH{$date}%")->order('id desc')->value('purchase_no');
-            $seq = $maxNo ? intval(substr($maxNo, -3)) + 1 : 1;
-            $purchaseNo = 'JH' . $date . str_pad((string)$seq, 3, '0', STR_PAD_LEFT);
+            $orderNoService = new OrderNoService();
+            $seq = $orderNoService->getNextSequence($maxNo);
+            $purchaseNo = $orderNoService->generatePurchaseNo($date, $seq);
 
             Db::startTrans();
             try {
@@ -318,7 +327,8 @@ class Purchase extends BaseController
                         'create_time'    => time(),
                     ]);
 
-                    $stockAdd = $item['box_spec'] * $item['box_count'] + $item['piece_count'];
+                    $stockCalc2 = new StockCalculator();
+                    $stockAdd = $stockCalc2->calcPurchaseAdd($item['box_spec'], $item['box_count'], $item['piece_count']);
                     Db::name('goods')->where('barcode', $item['barcode'])
                         ->inc('stock', $stockAdd)
                         ->update(['box_spec' => $item['box_spec']]);
@@ -482,18 +492,22 @@ class Purchase extends BaseController
             $totalAmount   = 0;
             $totalGoodsNum = 0;
             foreach ($items as &$item) {
-                $itemTotal = $item['purchase_price'] * ($item['box_spec'] * $item['box_count'] + $item['piece_count']);
+                $stockCalc = new StockCalculator();
+                $itemTotal = $stockCalc->calcPurchaseItemTotal(
+                    $item['purchase_price'], $item['box_spec'], $item['box_count'], $item['piece_count']
+                );
                 $item['total_amount'] = $itemTotal;
                 $totalAmount   += $itemTotal;
-                $totalGoodsNum += $item['box_spec'] * $item['box_count'] + $item['piece_count'];
+                $totalGoodsNum += $stockCalc->calcPurchaseAdd($item['box_spec'], $item['box_count'], $item['piece_count']);
             }
             unset($item);
 
             $date = $purchaseDate ?: date('Ymd');
             $datePrefix = date('Ymd', strtotime($date));
             $maxNo = Db::name('purchase')->where('purchase_no', 'like', "JH{$datePrefix}%")->order('id desc')->value('purchase_no');
-            $seq = $maxNo ? intval(substr($maxNo, -3)) + 1 : 1;
-            $purchaseNo = 'JH' . $datePrefix . str_pad((string)$seq, 3, '0', STR_PAD_LEFT);
+            $orderNoService = new OrderNoService();
+            $seq = $orderNoService->getNextSequence($maxNo);
+            $purchaseNo = $orderNoService->generatePurchaseNo($datePrefix, $seq);
 
             Db::startTrans();
             try {
@@ -522,7 +536,8 @@ class Purchase extends BaseController
                         'create_time'    => strtotime($date) ?: time(),
                     ]);
 
-                    $stockAdd = $item['box_spec'] * $item['box_count'] + $item['piece_count'];
+                    $stockCalc2 = new StockCalculator();
+                    $stockAdd = $stockCalc2->calcPurchaseAdd($item['box_spec'], $item['box_count'], $item['piece_count']);
                     Db::name('goods')->where('barcode', $item['barcode'])
                         ->inc('stock', $stockAdd)
                         ->update(['box_spec' => $item['box_spec']]);

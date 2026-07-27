@@ -29,7 +29,8 @@
     },
     "require-dev": {
         "topthink/think-dumper": "^1.0",
-        "topthink/think-trace": "^2.0"
+        "topthink/think-trace": "^2.0",
+        "phpunit/phpunit": "^10.0"
     },
     "autoload": {
         "psr-4": {
