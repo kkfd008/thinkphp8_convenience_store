@@ -7,8 +7,8 @@ class BarcodeService
 {
     public function generate(): string
     {
-        $barcode = '';
-        for ($i = 0; $i < 13; $i++) {
+        $barcode = (string)rand(1, 9);
+        for ($i = 1; $i < 13; $i++) {
             $barcode .= (string)rand(0, 9);
         }
         return $barcode;
