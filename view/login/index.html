@@ -19,10 +19,10 @@
         <h2>便利店零售管理系统</h2>
         <form class="layui-form">
             <div class="layui-form-item">
-                <input type="text" name="username" lay-verify="required" placeholder="请输入账号" autocomplete="off" class="layui-input">
+                <input type="text" name="username" lay-verify="required" placeholder="请输入账号…" autocomplete="username" class="layui-input">
             </div>
             <div class="layui-form-item">
-                <input type="password" name="password" lay-verify="required" placeholder="请输入密码" autocomplete="off" class="layui-input">
+                <input type="password" name="password" lay-verify="required" placeholder="请输入密码…" autocomplete="current-password" class="layui-input">
             </div>
             <div class="layui-form-item">
                 <button lay-submit lay-filter="login" class="layui-btn layui-btn-fluid" style="background-color:#5FB878;">登 录</button>
@@ -37,6 +37,8 @@ layui.use(['form'], function(){
     var $ = layui.$;
 
     form.on('submit(login)', function(data){
+        var $btn = $(this.elem);
+        $btn.attr('disabled', true).text('登录中…');
         $.ajax({
             url: '/login/doLogin',
             type: 'POST',
@@ -48,8 +50,13 @@ layui.use(['form'], function(){
                         window.location.href = '/index/index';
                     });
                 } else {
+                    $btn.attr('disabled', false).text('登 录');
                     layer.msg(res.msg, {icon: 2});
                 }
+            },
+            error: function(){
+                $btn.attr('disabled', false).text('登 录');
+                layer.msg('网络错误', {icon: 2});
             }
         });
         return false;

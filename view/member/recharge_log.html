@@ -6,8 +6,8 @@
             {foreach $members as $m}<option value="{$m.id}" {if isset($member_id) && $member_id==$m.id}selected{/if}>{$m.name} ({$m.phone})</option>{/foreach}
         </select>
     </div>
-    <div class="layui-inline"><input type="text" id="search-start" placeholder="开始日期" class="layui-input" value="{$start_date|default=''}"></div>
-    <div class="layui-inline"><input type="text" id="search-end" placeholder="结束日期" class="layui-input" value="{$end_date|default=''}"></div>
+    <div class="layui-inline"><input type="text" id="search-start" placeholder="开始日期…" class="layui-input" value="{$start_date|default=''}"></div>
+    <div class="layui-inline"><input type="text" id="search-end" placeholder="结束日期…" class="layui-input" value="{$end_date|default=''}"></div>
     <div class="layui-inline"><button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button></div>
 </div>
 <table id="log-table" lay-filter="logTable"></table>

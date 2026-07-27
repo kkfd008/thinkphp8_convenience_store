@@ -6,8 +6,8 @@
 <table id="admin-table" lay-filter="adminTable"></table>
 
 <script type="text/html" id="adminToolbar">
-    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
-    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+    <button class="layui-btn layui-btn-xs" lay-event="edit">编辑</button>
+    <button class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</button>
 </script>
 {/block}
 
@@ -52,7 +52,7 @@ window.openAdminEdit = function(data){
     var roleOptions = roleList.map(function(r){ return '<option value="'+r.id+'" ' + (isEdit && data.role_id === r.id ? 'selected' : '') + '>' + r.name + '</option>'; });
     var html = '<div style="padding:20px;">\
         <div class="layui-form-item"><label class="layui-form-label">账号</label><div class="layui-input-block"><input type="text" name="username" value="'+(isEdit?data.username:'')+'" class="layui-input"></div></div>\
-        <div class="layui-form-item"><label class="layui-form-label">密码</label><div class="layui-input-block"><input type="password" name="password" value="" class="layui-input" placeholder="'+(isEdit?'留空不修改':'')+'"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">密码</label><div class="layui-input-block"><input type="password" name="password" value="" class="layui-input" placeholder="'+(isEdit?'留空不修改…':'')+'"></div></div>\
         <div class="layui-form-item"><label class="layui-form-label">角色</label><div class="layui-input-block"><select name="role_id"><option value="">请选择</option>' + roleOptions.join('') + '</select></div></div>\
     </div>';
     layer.open({

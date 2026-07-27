@@ -7,7 +7,8 @@
             <div class="layui-card-body">
                 <div style="position:relative;">
                     <div style="display:flex;gap:8px;">
-                        <input type="text" id="scan-input" placeholder="输入条码或名称搜索商品" class="layui-input" autofocus style="flex:1;">
+                        <label for="scan-input" class="layui-hide">搜索商品</label>
+                    <input type="text" id="scan-input" placeholder="输入条码或名称搜索商品…" class="layui-input" style="flex:1;">
                         <button class="layui-btn layui-btn-primary" id="btn-search-goods"><i class="layui-icon layui-icon-search"></i> 搜索</button>
                     </div>
                     <div id="scan-result" class="search-result" style="display:none;"></div>
@@ -16,7 +17,8 @@
                     <label style="display:block;margin-bottom:4px;">选择会员：</label>
                     <div style="position:relative;">
                         <div style="display:flex;gap:8px;">
-                            <input type="text" id="member-search" placeholder="手机号/姓名搜索" class="layui-input" style="flex:1;">
+                            <label for="member-search" class="layui-hide">搜索会员</label>
+                            <input type="text" id="member-search" placeholder="手机号/姓名搜索…" class="layui-input" style="flex:1;">
                             <button class="layui-btn layui-btn-primary" id="btn-search-member"><i class="layui-icon layui-icon-search"></i> 搜索</button>
                         </div>
                         <div id="member-result" class="search-result" style="display:none;"></div>
@@ -33,7 +35,7 @@
                 <table id="cart-table" lay-filter="cartTable"></table>
 
                 <script type="text/html" id="cartToolbar">
-                    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+                    <button class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</button>
                 </script>
                 <script type="text/html" id="qtyTpl">
                     <button class="layui-btn layui-btn-xs" lay-event="minus">-</button>
@@ -66,9 +68,12 @@
 .search-result .sr-item {
     padding:8px 12px;border-bottom:1px solid #f0f0f0;
     cursor:pointer;font-size:13px;line-height:1.5;
+    background:none;border-left:none;border-right:none;border-top:none;
+    width:100%;text-align:left;display:block;color:inherit;
 }
 .search-result .sr-item:hover { background-color:#f2f2f2; }
 .search-result .sr-item:last-child { border-bottom:none; }
+.search-result .sr-item:focus-visible { outline:2px solid #009688;outline-offset:-2px; }
 .search-result .sr-item .sr-name { font-weight:bold; }
 .search-result .sr-item .sr-info { color:#999; }
 </style>
@@ -89,10 +94,10 @@ function searchGoods() {
             var html = '';
             res.data.forEach(function(g, i){
                 goodsCache[i] = g;
-                html += '<div class="sr-item" data-gidx="' + i + '">';
+                html += '<button class="sr-item" data-gidx="' + i + '" type="button">';
                 html += '<div class="sr-name">' + g.barcode + ' | ' + g.name + (g.unit ? ' | ' + g.unit : '') + '</div>';
                 html += '<div class="sr-info">零售价：&yen;' + g.retail_price + ' | 库存：' + g.stock + '</div>';
-                html += '</div>';
+                html += '</button>';
             });
             $box.html(html).show();
         } else {
@@ -128,10 +133,10 @@ function searchMember() {
         if (res.code === 0 && res.data.length > 0) {
             var html = '';
             res.data.forEach(function(m, i){
-                html += '<div class="sr-item" data-midx="' + i + '">';
+                html += '<button class="sr-item" data-midx="' + i + '" type="button">';
                 html += '<div class="sr-name">' + m.name + ' | ' + m.phone + '</div>';
                 html += '<div class="sr-info">' + (m.discount*100).toFixed(0) + '%折 | 余额：&yen;' + m.balance + '</div>';
-                html += '</div>';
+                html += '</button>';
             });
             $box.html(html).show();
             $box.data('members', res.data);

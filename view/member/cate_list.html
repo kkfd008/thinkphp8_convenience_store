@@ -6,8 +6,8 @@
 <table id="cate-table" lay-filter="cateTable"></table>
 
 <script type="text/html" id="toolbar">
-    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
-    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+    <button class="layui-btn layui-btn-xs" lay-event="edit">编辑</button>
+    <button class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</button>
 </script>
 {/block}
 
@@ -47,7 +47,7 @@ window.openCateEdit = function(data){
     var isEdit = !!data;
     var html = '<div class="layui-form" style="padding:20px;">\
         <div class="layui-form-item"><label class="layui-form-label">名称</label><div class="layui-input-block"><input type="text" name="name" value="'+(isEdit?data.name:'')+'" class="layui-input"></div></div>\
-        <div class="layui-form-item"><label class="layui-form-label">折扣率</label><div class="layui-input-block"><input type="number" step="0.01" name="discount" value="'+(isEdit?data.discount:'1')+'" placeholder="0.95 表示 95折" class="layui-input"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">折扣率</label><div class="layui-input-block"><input type="number" step="0.01" name="discount" value="'+(isEdit?data.discount:'1')+'" placeholder="0.95 表示 95折…" class="layui-input"></div></div>\
     </div>';
     layer.open({
         type: 1, title: isEdit ? '编辑分类' : '新增分类', area: ['400px', '220px'], content: html,

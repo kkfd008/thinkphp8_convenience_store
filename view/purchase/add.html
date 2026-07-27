@@ -16,7 +16,8 @@
     <div class="layui-form-item">
         <label class="layui-form-label">添加商品</label>
         <div class="layui-input-inline" style="width:250px;">
-            <input type="text" id="goods-search" placeholder="条码/名称搜索" class="layui-input" onkeydown="if(event.keyCode===13)searchGoods()">
+            <label for="goods-search" class="layui-hide">搜索商品</label>
+            <input type="text" id="goods-search" placeholder="条码/名称搜索…" class="layui-input" onkeydown="if(event.keyCode===13)searchGoods()">
         </div>
         <button class="layui-btn layui-btn-primary" onclick="searchGoods()">搜索</button>
     </div>
@@ -26,7 +27,7 @@
 <table id="cart-table" lay-filter="cartTable"></table>
 
 <script type="text/html" id="cartToolbar">
-    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+    <button class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</button>
 </script>
 
 <div style="padding:10px;">
@@ -50,7 +51,7 @@ function searchGoods() {
         if (res.code === 0 && res.data.length > 0) {
             var html = '';
             res.data.forEach(function(g){
-                html += '<div class="goods-item" data-barcode="' + g.barcode + '" data-name="' + g.name + '" data-unit="' + (g.unit || '') + '" data-purchase="' + g.purchase_price + '" data-retail="' + g.retail_price + '" onclick="addToCart(this)">' + g.barcode + ' | ' + g.name + (g.unit ? ' | ' + g.unit : '') + ' | 进:' + g.purchase_price + ' | 售:' + g.retail_price + '</div>';
+                html += '<button class="goods-item" type="button" data-barcode="' + g.barcode + '" data-name="' + g.name + '" data-unit="' + (g.unit || '') + '" data-purchase="' + g.purchase_price + '" data-retail="' + g.retail_price + '" onclick="addToCart(this)">' + g.barcode + ' | ' + g.name + (g.unit ? ' | ' + g.unit : '') + ' | 进:' + g.purchase_price + ' | 售:' + g.retail_price + '</button>';
             });
             $('#search-result').html(html).show();
         } else {

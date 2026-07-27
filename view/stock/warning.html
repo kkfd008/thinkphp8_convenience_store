@@ -15,7 +15,7 @@
 <table id="warning-table" lay-filter="warningTable"></table>
 
 <script type="text/html" id="toolbar">
-    <a class="layui-btn layui-btn-xs" lay-event="threshold">编辑阈值</a>
+    <button class="layui-btn layui-btn-xs" lay-event="threshold">编辑阈值</button>
 </script>
 {/block}
 
@@ -41,7 +41,7 @@ layui.use(['table'], function(){
         page: false,
         done: function(res){
             res.data.forEach(function(item, i){
-                $('.layui-table-body tbody tr').eq(i).css('background-color', '#FFF0F0');
+                $('.layui-table-body tbody tr').eq(i).addClass('row-warning');
             });
         }
     });

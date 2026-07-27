@@ -2,7 +2,7 @@
 {block name="content"}
 <div class="search-form">
     <div class="layui-inline">
-        <input type="text" id="search-keyword" placeholder="名称/电话" class="layui-input" value="{$keyword|default=''}">
+        <input type="text" id="search-keyword" placeholder="名称/电话…" class="layui-input" value="{$keyword|default=''}">
     </div>
     <div class="layui-inline">
         <select id="search-status">
@@ -24,9 +24,9 @@
 <table id="supplier-table" lay-filter="supplierTable"></table>
 
 <script type="text/html" id="toolbar">
-    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
-    <a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="toggle">{{= d.status == 1 ? '禁用' : '启用' }}</a>
-    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+    <button class="layui-btn layui-btn-xs" lay-event="edit">编辑</button>
+    <button class="layui-btn layui-btn-xs layui-btn-warm" lay-event="toggle">{{= d.status == 1 ? '禁用' : '启用' }}</button>
+    <button class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</button>
 </script>
 {/block}
 
@@ -101,7 +101,7 @@ window.openEdit = function(data){
     var html = '<div style="padding:20px;">\
         <div class="layui-form-item"><label class="layui-form-label">名称</label><div class="layui-input-block"><input type="text" name="name" value="'+(isEdit?data.name:'')+'" class="layui-input"></div></div>\
         <div class="layui-form-item"><label class="layui-form-label">联系人</label><div class="layui-input-block"><input type="text" name="contact" value="'+(isEdit?data.contact:'')+'" class="layui-input"></div></div>\
-        <div class="layui-form-item"><label class="layui-form-label">电话</label><div class="layui-input-block"><input type="text" name="phone" value="'+(isEdit?data.phone:'')+'" class="layui-input"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">电话</label><div class="layui-input-block"><input type="tel" name="phone" value="'+(isEdit?data.phone:'')+'" class="layui-input"></div></div>\
         <div class="layui-form-item"><label class="layui-form-label">地址</label><div class="layui-input-block"><input type="text" name="address" value="'+(isEdit?data.address:'')+'" class="layui-input"></div></div>\
         <div class="layui-form-item"><label class="layui-form-label">备注</label><div class="layui-input-block"><textarea name="remark" class="layui-textarea">'+(isEdit?data.remark:'')+'</textarea></div></div>\
         <div class="layui-form-item"><label class="layui-form-label">状态</label><div class="layui-input-block"><select name="status"><option value="1" '+(isEdit&&data.status==1?'selected':'')+'>启用</option><option value="0" '+(isEdit&&data.status==0?'selected':'')+'>禁用</option></select></div></div>\

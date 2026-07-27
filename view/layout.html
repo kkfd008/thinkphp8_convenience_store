@@ -26,9 +26,17 @@
         .breadcrumb .layui-icon { font-size: 12px; margin: 0 6px; color: rgba(255,255,255,.4); }
         .breadcrumb .current { color: #fff; }
         .search-result { position: absolute; z-index: 999; background: #fff; border: 1px solid #e6e6e6; border-radius: 3px; max-height: 250px; overflow-y: auto; width: 250px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
-        .search-result .goods-item { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer; font-size: 13px; }
+        .search-result .goods-item { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer; font-size: 13px; background: none; border-left: none; border-right: none; border-top: none; width: 100%; text-align: left; display: block; }
         .search-result .goods-item:hover { background-color: #f2f2f2; }
         .search-result .goods-item:last-child { border-bottom: none; }
+        .search-result .goods-item:focus-visible { outline: 2px solid #009688; outline-offset: -2px; }
+        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #009688; outline-offset: 1px; }
+        .layui-btn:focus-visible { outline: 2px solid #009688; outline-offset: 2px; }
+        .layui-input:focus { border-color: #009688 !important; box-shadow: 0 0 0 2px rgba(0,150,136,.15); }
+        html { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+        .row-warning { background-color: #FFF0F0 !important; }
+        .row-stock-low { background-color: #FFF0F0 !important; }
+        .row-stock-high { background-color: #FFFDE0 !important; }
     </style>
     {block name="style"}{/block}
 </head>
@@ -43,7 +51,7 @@
             <li class="layui-nav-item">
                 <a href="javascript:;" style="color:#fff;">{$admin_username}</a>
                 <dl class="layui-nav-child">
-                    <dd><a href="/login/doLogout" style="color:#333;">退出登录</a></dd>
+                    <dd><a href="/login/doLogout" style="color:#333;" aria-label="退出登录">退出登录</a></dd>
                 </dl>
             </li>
         </ul>

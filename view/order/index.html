@@ -1,16 +1,16 @@
 ﻿﻿﻿﻿﻿﻿﻿﻿﻿{extend name="layout" /}
 {block name="content"}
 <div class="search-form">
-    <div class="layui-inline"><input type="text" id="search-keyword" placeholder="订单号" class="layui-input" value="{$keyword|default=''}"></div>
-    <div class="layui-inline"><input type="text" id="search-start" placeholder="开始日期" class="layui-input" value="{$start_date|default=''}"></div>
-    <div class="layui-inline"><input type="text" id="search-end" placeholder="结束日期" class="layui-input" value="{$end_date|default=''}"></div>
+    <div class="layui-inline"><input type="text" id="search-keyword" placeholder="订单号…" class="layui-input" value="{$keyword|default=''}"></div>
+    <div class="layui-inline"><input type="text" id="search-start" placeholder="开始日期…" class="layui-input" value="{$start_date|default=''}"></div>
+    <div class="layui-inline"><input type="text" id="search-end" placeholder="结束日期…" class="layui-input" value="{$end_date|default=''}"></div>
     <div class="layui-inline"><button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button></div>
     <div class="layui-inline layui-right"><button class="layui-btn layui-btn-primary" onclick="exportData()"><i class="layui-icon layui-icon-export"></i> 导出</button></div>
 </div>
 <table id="order-table" lay-filter="orderTable"></table>
 
 <script type="text/html" id="toolbar">
-    <a class="layui-btn layui-btn-xs" lay-event="detail">查看明细</a>
+    <button class="layui-btn layui-btn-xs" lay-event="detail">查看明细</button>
 </script>
 {/block}
 

@@ -6,9 +6,9 @@
 <table id="rule-table" lay-filter="ruleTable"></table>
 
 <script type="text/html" id="toolbar">
-    <a class="layui-btn layui-btn-xs layui-btn-primary" lay-event="addChild">添加子菜单</a>
-    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
-    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+    <button class="layui-btn layui-btn-xs layui-btn-primary" lay-event="addChild">添加子菜单</button>
+    <button class="layui-btn layui-btn-xs" lay-event="edit">编辑</button>
+    <button class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</button>
 </script>
 {/block}
 
@@ -68,7 +68,7 @@ window.openRuleEdit = function(pid, data){
     var html = '<div style="padding:20px;">\
         <div class="layui-form-item"><label class="layui-form-label">上级菜单</label><div class="layui-input-block"><select name="pid"><option value="0">顶级菜单</option>' + options.join('') + '</select></div></div>\
         <div class="layui-form-item"><label class="layui-form-label">菜单标题</label><div class="layui-input-block"><input type="text" name="title" value="'+(isEdit?data.title:'')+'" class="layui-input"></div></div>\
-        <div class="layui-form-item"><label class="layui-form-label">权限标识</label><div class="layui-input-block"><input type="text" name="name" value="'+(isEdit?data.name:'')+'" class="layui-input" placeholder="如 Goods/index"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">权限标识</label><div class="layui-input-block"><input type="text" name="name" value="'+(isEdit?data.name:'')+'" class="layui-input" placeholder="如 Goods/index…"></div></div>\
         <div class="layui-form-item"><label class="layui-form-label">图标</label><div class="layui-input-block"><input type="text" name="icon" value="'+(isEdit?data.icon:'')+'" class="layui-input" placeholder="layui-icon-xxx"></div></div>\
         <div class="layui-form-item"><label class="layui-form-label">排序</label><div class="layui-input-block"><input type="number" name="sort" value="'+(isEdit?data.sort||0:'')+'" class="layui-input"></div></div>\
     </div>';

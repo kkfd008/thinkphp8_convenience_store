@@ -6,11 +6,11 @@
 <table id="cate-table" lay-filter="cateTable"></table>
 
 <script type="text/html" id="toolbar">
-    <a class="layui-btn layui-btn-xs" lay-event="edit">修改</a>
+    <button class="layui-btn layui-btn-xs" lay-event="edit">修改</button>
     {{# if(d.status == 1) { }}
-    <a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="hide">隐藏</a>
+    <button class="layui-btn layui-btn-xs layui-btn-warm" lay-event="hide">隐藏</button>
     {{# } else { }}
-    <a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="show">显示</a>
+    <button class="layui-btn layui-btn-xs layui-btn-normal" lay-event="show">显示</button>
     {{# } }}
 </script>
 {/block}

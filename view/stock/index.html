@@ -1,7 +1,7 @@
 {extend name="layout" /}
 {block name="content"}
 <div class="search-form">
-    <div class="layui-inline"><input type="text" id="search-keyword" placeholder="名称/条码" class="layui-input" value="{$keyword|default=''}"></div>
+    <div class="layui-inline"><input type="text" id="search-keyword" placeholder="名称/条码…" class="layui-input" value="{$keyword|default=''}"></div>
     <div class="layui-inline">
         <select id="search-cate"><option value="">全部分类</option>
             {foreach $cateList as $c}<option value="{$c}" {if isset($cate) && $cate===$c}selected{/if}>{$c}</option>{/foreach}
@@ -36,8 +36,8 @@ layui.use(['table', 'element'], function(){
         done: function(res){
             res.data.forEach(function(item, i){
                 var $tr = $('.layui-table-body tbody tr').eq(i);
-                if (item.stock_min && item.stock < item.stock_min) $tr.css('background-color', '#FFF0F0');
-                else if (item.stock_max && item.stock > item.stock_max) $tr.css('background-color', '#FFFDE0');
+                if (item.stock_min && item.stock < item.stock_min) $tr.addClass('row-stock-low');
+                else if (item.stock_max && item.stock > item.stock_max) $tr.addClass('row-stock-high');
             });
         }
     });
@@ -87,7 +87,7 @@ layui.use(['table', 'element'], function(){
 </script>
 
 <script type="text/html" id="stockToolbar">
-    <a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="detail">库存明细</a>
+    <button class="layui-btn layui-btn-xs layui-btn-normal" lay-event="detail">库存明细</button>
 </script>
 
 <script>

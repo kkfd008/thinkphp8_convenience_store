@@ -2,7 +2,7 @@
 {block name="content"}
 <div class="search-form">
     <div class="layui-inline">
-        <input type="text" id="search-keyword" placeholder="名称/条码/分类" class="layui-input" value="{$keyword|default=''}">
+        <input type="text" id="search-keyword" placeholder="名称/条码/分类…" class="layui-input" value="{$keyword|default=''}">
     </div>
     <div class="layui-inline">
         <select id="search-cate">
@@ -17,18 +17,18 @@
         <button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button>
     </div>
     <div class="btn-group-right">
-        <button class="layui-btn layui-btn-primary" onclick="openEdit()"><i class="layui-icon layui-icon-add-1"></i> 新增商品</button>
-        <button class="layui-btn layui-btn-primary" onclick="openImport()"><i class="layui-icon layui-icon-upload-drag"></i> Excel导入</button>
-        <button class="layui-btn layui-btn-primary" onclick="downloadTemplate()"><i class="layui-icon layui-icon-download-circle"></i> 下载模板</button>
-        <button class="layui-btn layui-btn-primary" onclick="exportData()"><i class="layui-icon layui-icon-export"></i> 导出</button>
-        <button class="layui-btn layui-btn-normal" id="btn-batch-cate">批量改分类</button>
+        <button class="layui-btn layui-btn-primary" onclick="openEdit()" aria-label="新增商品"><i class="layui-icon layui-icon-add-1"></i> 新增商品</button>
+        <button class="layui-btn layui-btn-primary" onclick="openImport()" aria-label="Excel导入"><i class="layui-icon layui-icon-upload-drag"></i> Excel导入</button>
+        <button class="layui-btn layui-btn-primary" onclick="downloadTemplate()" aria-label="下载模板"><i class="layui-icon layui-icon-download-circle"></i> 下载模板</button>
+        <button class="layui-btn layui-btn-primary" onclick="exportData()" aria-label="导出"><i class="layui-icon layui-icon-export"></i> 导出</button>
+        <button class="layui-btn layui-btn-normal" id="btn-batch-cate" aria-label="批量修改分类">批量改分类</button>
     </div>
 </div>
 <table id="goods-table" lay-filter="goodsTable"></table>
 
 <script type="text/html" id="toolbar">
-    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
-    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+    <button class="layui-btn layui-btn-xs" lay-event="edit">编辑</button>
+    <button class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</button>
 </script>
 {/block}
 
@@ -132,8 +132,8 @@ window.openEdit = function(data){
         var html = '<div class="layui-form" style="padding:20px;">\
             <div class="layui-form-item"><label class="layui-form-label">名称</label><div class="layui-input-block"><input type="text" name="name" value="'+(isEdit?data.name:'')+'" class="layui-input"></div></div>\
             <div class="layui-form-item"><label class="layui-form-label">条码</label><div class="layui-input-inline"><input type="text" name="barcode" id="edit-barcode" value="'+(isEdit?data.barcode:genBarcode)+'" class="layui-input" '+(isEdit?'readonly':'')+'></div><div class="layui-input-inline" style="width:auto"><button class="layui-btn layui-btn-primary" onclick="genRandomBarcode()">随机生成</button></div></div>\
-            <div class="layui-form-item"><label class="layui-form-label">单位</label><div class="layui-input-block"><input type="text" name="unit" value="'+(isEdit?data.unit||'':'')+'" class="layui-input" placeholder="如：瓶、箱、个"></div></div>\
-            <div class="layui-form-item"><label class="layui-form-label">箱规</label><div class="layui-input-block"><input type="number" name="box_spec" value="'+(isEdit&&data.box_spec?data.box_spec:'')+'" class="layui-input" placeholder="每箱含多少散件，如 24"></div></div>\
+            <div class="layui-form-item"><label class="layui-form-label">单位</label><div class="layui-input-block"><input type="text" name="unit" value="'+(isEdit?data.unit||'':'')+'" class="layui-input" placeholder="如：瓶、箱、个…"></div></div>\
+            <div class="layui-form-item"><label class="layui-form-label">箱规</label><div class="layui-input-block"><input type="number" name="box_spec" value="'+(isEdit&&data.box_spec?data.box_spec:'')+'" class="layui-input" placeholder="每箱含多少散件，如 24…"></div></div>\
             <div class="layui-form-item"><label class="layui-form-label">进货价</label><div class="layui-input-block"><input type="number" step="0.01" name="purchase_price" value="'+(isEdit?data.purchase_price:'')+'" class="layui-input"></div></div>\
             <div class="layui-form-item"><label class="layui-form-label">零售价</label><div class="layui-input-block"><input type="number" step="0.01" name="retail_price" value="'+(isEdit?data.retail_price:'')+'" class="layui-input"></div></div>\
             <div class="layui-form-item"><label class="layui-form-label">分类</label><div class="layui-input-block"><select name="cate"><option value="">请选择分类</option>' + goodsCateList.map(function(c){ return '<option value="' + c.name + '" ' + (isEdit && data.cate === c.name ? 'selected' : '') + '>' + c.name + '</option>'; }).join('') + '</select></div></div>\

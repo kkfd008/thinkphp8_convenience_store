@@ -2,7 +2,7 @@
 {block name="content"}
 <div class="search-form">
     <div class="layui-inline">
-        <input type="text" id="search-keyword" placeholder="进货单号" class="layui-input" value="{$keyword|default=''}">
+        <input type="text" id="search-keyword" placeholder="进货单号…" class="layui-input" value="{$keyword|default=''}">
     </div>
     <div class="layui-inline">
         <select id="search-supplier">
@@ -13,10 +13,10 @@
         </select>
     </div>
     <div class="layui-inline">
-        <input type="text" id="search-start" placeholder="开始日期" class="layui-input" value="{$start_date|default=''}">
+        <input type="text" id="search-start" placeholder="开始日期…" class="layui-input" value="{$start_date|default=''}">
     </div>
     <div class="layui-inline">
-        <input type="text" id="search-end" placeholder="结束日期" class="layui-input" value="{$end_date|default=''}">
+        <input type="text" id="search-end" placeholder="结束日期…" class="layui-input" value="{$end_date|default=''}">
     </div>
     <div class="layui-inline">
         <button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button>
@@ -32,7 +32,7 @@
 <table id="purchase-table" lay-filter="purchaseTable"></table>
 
 <script type="text/html" id="toolbar">
-    <a class="layui-btn layui-btn-xs" lay-event="detail">查看明细</a>
+    <button class="layui-btn layui-btn-xs" lay-event="detail">查看明细</button>
 </script>
 {/block}
 

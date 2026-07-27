@@ -1,7 +1,7 @@
 ﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿{extend name="layout" /}
 {block name="content"}
 <div class="search-form">
-    <div class="layui-inline"><input type="text" id="search-keyword" placeholder="姓名/手机号" class="layui-input" value="{$keyword|default=''}"></div>
+    <div class="layui-inline"><input type="text" id="search-keyword" placeholder="姓名/手机号…" class="layui-input" value="{$keyword|default=''}"></div>
     <div class="layui-inline"><button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button></div>
     <div class="layui-inline layui-right">
         <button class="layui-btn layui-btn-primary" onclick="openEdit()"><i class="layui-icon layui-icon-add-1"></i> 新增会员</button>
@@ -11,8 +11,8 @@
 <table id="member-table" lay-filter="memberTable"></table>
 
 <script type="text/html" id="toolbar">
-    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
-    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+    <button class="layui-btn layui-btn-xs" lay-event="edit">编辑</button>
+    <button class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</button>
 </script>
 {/block}
 
@@ -58,7 +58,7 @@ window.openEdit = function(data){
     var cateOpts = cates.map(function(c){ return '<option value="'+c.id+'" '+(isEdit&&data.cate_id==c.id?'selected':'')+'>'+c.name+'</option>'; });
     var html = '<div style="padding:20px;">\
         <div class="layui-form-item"><label class="layui-form-label">姓名</label><div class="layui-input-block"><input type="text" name="name" value="'+(isEdit?data.name:'')+'" class="layui-input"></div></div>\
-        <div class="layui-form-item"><label class="layui-form-label">手机号</label><div class="layui-input-block"><input type="text" name="phone" value="'+(isEdit?data.phone:'')+'" class="layui-input"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">手机号</label><div class="layui-input-block"><input type="tel" name="phone" value="'+(isEdit?data.phone:'')+'" class="layui-input"></div></div>\
         <div class="layui-form-item"><label class="layui-form-label">分类</label><div class="layui-input-block"><select name="cate_id"><option value="0">无</option>'+cateOpts.join('')+'</select></div></div>\
         <div class="layui-form-item"><label class="layui-form-label">备注</label><div class="layui-input-block"><textarea name="remark" class="layui-textarea">'+(isEdit?data.remark||'':'')+'</textarea></div></div>\
     </div>';
