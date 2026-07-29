@@ -564,10 +564,29 @@ class Purchase extends BaseController
 
     public function export()
     {
-        $list = Db::name('purchase')->alias('p')
+        $keyword    = $this->request->get('keyword', '');
+        $supplierId = $this->request->get('supplier_id', '');
+        $startDate  = $this->request->get('start_date', '');
+        $endDate    = $this->request->get('end_date', '');
+
+        $query = Db::name('purchase')->alias('p')
             ->leftJoin('supplier s', 'p.supplier_id = s.id')
-            ->field('p.*, s.name as supplier_name')
-            ->select()->toArray();
+            ->field('p.*, s.name as supplier_name');
+
+        if ($keyword !== '') {
+            $query->where('p.purchase_no', 'like', "%{$keyword}%");
+        }
+        if ($supplierId !== '') {
+            $query->where('p.supplier_id', intval($supplierId));
+        }
+        if ($startDate !== '') {
+            $query->where('p.create_time', '>=', strtotime($startDate));
+        }
+        if ($endDate !== '') {
+            $query->where('p.create_time', '<', strtotime($endDate) + 86400);
+        }
+
+        $list = $query->order('p.id desc')->select()->toArray();
 
         $headers = ['进货单号', '供货商', '总金额', '总数量', '操作员ID', '备注', '时间'];
         $data = [];

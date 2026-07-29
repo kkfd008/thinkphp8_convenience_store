@@ -105,7 +105,18 @@ window.doSearch = function(){
     location.href = '/purchase/index' + (params.length > 0 ? '?' + params.join('&') : '');
 };
 
-window.exportData = function(){ location.href = '/purchase/export'; };
+window.exportData = function(){
+    var params = [];
+    var keyword = $('#search-keyword').val();
+    if (keyword) params.push('keyword=' + encodeURIComponent(keyword));
+    var supplier = $('#search-supplier').val();
+    if (supplier) params.push('supplier_id=' + supplier);
+    var start = $('#search-start').val();
+    if (start) params.push('start_date=' + start);
+    var end = $('#search-end').val();
+    if (end) params.push('end_date=' + end);
+    location.href = '/purchase/export' + (params.length > 0 ? '?' + params.join('&') : '');
+};
 
 window.downloadTemplate = function(){ location.href = '/purchase/downloadTemplate'; };
 
