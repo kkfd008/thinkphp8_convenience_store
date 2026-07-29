@@ -31,7 +31,7 @@ function buildTreeHtml(nodes, checkedIds, prefix) {
     return html;
 }
 
-layui.use(['table'], function(){
+layui.use(['table', 'form'], function(){
     var table = layui.table;
     table.render({
         elem: '#role-table',
@@ -76,6 +76,7 @@ window.openRoleEdit = function(data){
         area: ['500px', '450px'],
         content: html,
         btn: ['保存', '取消'],
+        success: function(){ layui.form.render('checkbox'); },
         yes: function(index, layero){
             var form = layui.form;
             form.render('checkbox');
