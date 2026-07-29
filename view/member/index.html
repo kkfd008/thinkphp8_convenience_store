@@ -66,7 +66,7 @@ window.openEdit = function(data){
     layer.open({
         type: 1, title: isEdit ? '编辑会员' : '新增会员', area: ['500px', '350px'], content: html,
         btn: ['保存', '取消'],
-        success: function(){ form.render('select'); },
+        success: function(){ layui.form.render('select'); },
         yes: function(index, layero){
             var formDom = layui.$(layero);
             var postData = {id: isEdit ? data.id : 0, name: formDom.find('[name=name]').val(), phone: formDom.find('[name=phone]').val(), cate_id: formDom.find('[name=cate_id]').val(), remark: formDom.find('[name=remark]').val()};

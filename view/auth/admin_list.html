@@ -62,7 +62,7 @@ window.openAdminEdit = function(data){
         area: ['450px', '320px'],
         content: html,
         btn: ['保存', '取消'],
-        success: function(){ form.render('select'); },
+        success: function(){ layui.form.render('select'); },
         yes: function(index, layero){
             var formDom = layui.$(layero);
             var postData = {

@@ -79,7 +79,7 @@ window.openRuleEdit = function(pid, data){
         area: ['500px', '380px'],
         content: html,
         btn: ['保存', '取消'],
-        success: function(){ form.render('select'); },
+        success: function(){ layui.form.render('select'); },
         yes: function(index, layero){
             var form = layui.$(layero);
             var postData = {
