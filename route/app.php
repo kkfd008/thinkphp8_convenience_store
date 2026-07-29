@@ -33,6 +33,7 @@ Route::get('/supplier/downloadTemplate', 'supplier/downloadTemplate');
 Route::get('/supplier/export', 'supplier/export');
 
 Route::get('/goods/index', 'goods/index');
+Route::get('/goods/list', 'goods/list');
 Route::post('/goods/add', 'goods/add');
 Route::post('/goods/edit', 'goods/edit');
 Route::post('/goods/delete', 'goods/delete');
@@ -48,6 +49,7 @@ Route::get('/goods/downloadTemplate', 'goods/downloadTemplate');
 Route::get('/goods/export', 'goods/export');
 
 Route::get('/purchase/index', 'purchase/index');
+Route::get('/purchase/list', 'purchase/list');
 Route::get('/purchase/add', 'purchase/add');
 Route::post('/purchase/doAdd', 'purchase/doAdd');
 Route::get('/purchase/detail', 'purchase/detail');
@@ -58,6 +60,7 @@ Route::get('/purchase/downloadTemplate', 'purchase/downloadTemplate');
 Route::get('/purchase/export', 'purchase/export');
 
 Route::get('/stock/index', 'stock/index');
+Route::get('/stock/list', 'stock/list');
 Route::get('/stock/detail', 'stock/detail');
 Route::post('/stock/updateThreshold', 'stock/updateThreshold');
 Route::get('/stock/warning', 'stock/warning');

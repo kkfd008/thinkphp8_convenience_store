@@ -20,6 +20,28 @@ class Purchase extends BaseController
         $startDate  = $this->request->get('start_date', '');
         $endDate    = $this->request->get('end_date', '');
 
+        $suppliers = Db::name('supplier')->select()->toArray();
+
+        View::assign(array_merge($this->assignAdminUser(), [
+            'menus'       => $this->getMenus(),
+            'keyword'     => $keyword,
+            'supplier_id' => $supplierId,
+            'start_date'  => $startDate,
+            'end_date'    => $endDate,
+            'suppliers'   => $suppliers,
+        ]));
+        return View::fetch();
+    }
+
+    public function list()
+    {
+        $page       = intval($this->request->get('page', 1));
+        $limit      = intval($this->request->get('limit', 20));
+        $keyword    = $this->request->get('keyword', '');
+        $supplierId = $this->request->get('supplier_id', '');
+        $startDate  = $this->request->get('start_date', '');
+        $endDate    = $this->request->get('end_date', '');
+
         $query = Db::name('purchase')->alias('p')
             ->leftJoin('supplier s', 'p.supplier_id = s.id')
             ->field('p.*, s.name as supplier_name');
@@ -37,20 +59,10 @@ class Purchase extends BaseController
             $query->where('p.create_time', '<', strtotime($endDate) + 86400);
         }
 
-        $list = $query->order('p.id desc')->select()->toArray();
+        $count = $query->count();
+        $list  = $query->order('p.id desc')->page($page, $limit)->select()->toArray();
 
-        $suppliers = Db::name('supplier')->select()->toArray();
-
-        View::assign(array_merge($this->assignAdminUser(), [
-            'menus'       => $this->getMenus(),
-            'list'        => $list,
-            'keyword'     => $keyword,
-            'supplier_id' => $supplierId,
-            'start_date'  => $startDate,
-            'end_date'    => $endDate,
-            'suppliers'   => $suppliers,
-        ]));
-        return View::fetch();
+        return json(['code' => 0, 'msg' => '', 'count' => $count, 'data' => $list]);
     }
 
     public function add()

@@ -38,8 +38,6 @@
 
 {block name="script"}
 <script>
-var purchaseList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
-
 layui.use(['table', 'laydate', 'upload', 'form'], function(){
     var table = layui.table;
     var laydate = layui.laydate;
@@ -73,7 +71,13 @@ layui.use(['table', 'laydate', 'upload', 'form'], function(){
 
     table.render({
         elem: '#purchase-table',
-        data: purchaseList,
+        url: '/purchase/list',
+        where: {
+            keyword: '{$keyword|default=""}',
+            supplier_id: '{$supplier_id|default=""}',
+            start_date: '{$start_date|default=""}',
+            end_date: '{$end_date|default=""}'
+        },
         cols: [[
             {field: 'purchase_no', title: '进货单号', width: 170},
             {field: 'supplier_name', title: '供货商', width: 150},
@@ -84,7 +88,7 @@ layui.use(['table', 'laydate', 'upload', 'form'], function(){
             }},
             {title: '操作', toolbar: '#toolbar', width: 100}
         ]],
-        page: false
+        page: {limits: [10, 20, 50, 100, 200]}
     });
 
     table.on('tool(purchaseTable)', function(obj){

@@ -18,6 +18,27 @@ class Goods extends BaseController
         $keyword = $this->request->get('keyword', '');
         $cate    = $this->request->get('cate', '');
 
+        $cateService = new GoodsCateService();
+        $cates = $cateService->getActiveCates();
+        $cateOptions = $cateService->getCateSelectOptions($cates);
+
+        View::assign(array_merge($this->assignAdminUser(), [
+            'menus'       => $this->getMenus(),
+            'keyword'     => $keyword,
+            'cate'        => $cate,
+            'cateList'    => $cates,
+            'cateOptions' => $cateOptions,
+        ]));
+        return View::fetch();
+    }
+
+    public function list()
+    {
+        $page    = intval($this->request->get('page', 1));
+        $limit   = intval($this->request->get('limit', 20));
+        $keyword = $this->request->get('keyword', '');
+        $cate    = $this->request->get('cate', '');
+
         $query = Db::name('goods');
         if ($keyword !== '') {
             $query->where(function ($q) use ($keyword) {
@@ -31,21 +52,10 @@ class Goods extends BaseController
         } elseif ($cate !== '') {
             $query->where('cate', $cate);
         }
-        $list = $query->order('id desc')->select()->toArray();
+        $count = $query->count();
+        $list  = $query->order('id desc')->page($page, $limit)->select()->toArray();
 
-        $cateService = new GoodsCateService();
-        $cates = $cateService->getActiveCates();
-        $cateOptions = $cateService->getCateSelectOptions($cates);
-
-        View::assign(array_merge($this->assignAdminUser(), [
-            'menus'       => $this->getMenus(),
-            'list'        => $list,
-            'keyword'     => $keyword,
-            'cate'        => $cate,
-            'cateList'    => $cates,
-            'cateOptions' => $cateOptions,
-        ]));
-        return View::fetch();
+        return json(['code' => 0, 'msg' => '', 'count' => $count, 'data' => $list]);
     }
 
     public function add()

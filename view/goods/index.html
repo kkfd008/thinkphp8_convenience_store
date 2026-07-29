@@ -34,7 +34,6 @@
 
 {block name="script"}
 <script>
-var goodsList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
 var goodsCateList = {:json_encode($cateList, JSON_UNESCAPED_UNICODE)};
 var selectedIds = {};
 
@@ -42,7 +41,11 @@ layui.use(['table', 'upload', 'form'], function(){
     var table = layui.table;
     table.render({
         elem: '#goods-table',
-        data: goodsList,
+        url: '/goods/list',
+        where: {
+            keyword: '{$keyword|default=""}',
+            cate: '{$cate|default=""}'
+        },
         cols: [[
             {type: 'checkbox'},
             {field: 'id', title: 'ID', width: 240},
@@ -59,7 +62,7 @@ layui.use(['table', 'upload', 'form'], function(){
             }},
             {title: '操作', toolbar: '#toolbar', width: 120}
         ]],
-        page: false
+        page: {limits: [10, 20, 50, 100, 200]}
     });
 
     table.on('checkbox(goodsTable)', function(obj){
@@ -216,9 +219,12 @@ window.openImport = function(){
 window.downloadTemplate = function(){ location.href = '/goods/downloadTemplate'; };
 window.exportData = function(){ location.href = '/goods/export'; };
 window.doSearch = function(){
-    var keyword = $('#search-keyword').val();
-    var cate = $('#search-cate').val();
-    location.href = '/goods/index?keyword=' + encodeURIComponent(keyword) + '&cate=' + encodeURIComponent(cate);
+    layui.table.reload('goods-table', {
+        where: {
+            keyword: $('#search-keyword').val(),
+            cate: $('#search-cate').val()
+        }
+    });
 };
 </script>
 {/block}

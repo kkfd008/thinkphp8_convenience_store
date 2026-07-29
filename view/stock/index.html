@@ -15,14 +15,16 @@
 
 {block name="script"}
 <script>
-var stockList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
-
 layui.use(['table', 'element', 'form'], function(){
     var table = layui.table;
     layui.form.render('select');
     table.render({
         elem: '#stock-table',
-        data: stockList,
+        url: '/stock/list',
+        where: {
+            keyword: '{$keyword|default=""}',
+            cate: '{$cate|default=""}'
+        },
         cols: [[
             {field: 'id', title: 'ID', width: 60},
             {field: 'name', title: '名称', width: 130},
@@ -33,7 +35,7 @@ layui.use(['table', 'element', 'form'], function(){
             {field: 'stock_max', title: '库存上限', width: 100, edit: 'number'},
             {title: '操作', toolbar: '#stockToolbar', width: 100}
         ]],
-        page: false,
+        page: {limits: [10, 20, 50, 100, 200]},
         done: function(res){
             res.data.forEach(function(item, i){
                 var $tr = $('.layui-table-body tbody tr').eq(i);
@@ -93,7 +95,12 @@ layui.use(['table', 'element', 'form'], function(){
 
 <script>
 window.doSearch = function(){
-    location.href = '/stock/index?keyword=' + encodeURIComponent($('#search-keyword').val()) + '&cate=' + encodeURIComponent($('#search-cate').val());
+    layui.table.reload('stock-table', {
+        where: {
+            keyword: $('#search-keyword').val(),
+            cate: $('#search-cate').val()
+        }
+    });
 };
 window.exportData = function(){ location.href = '/stock/export'; };
 </script>

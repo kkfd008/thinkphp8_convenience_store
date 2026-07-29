@@ -16,6 +16,25 @@ class Stock extends BaseController
         $keyword = $this->request->get('keyword', '');
         $cate    = $this->request->get('cate', '');
 
+        $cates = Db::name('goods')->field('cate')->where('cate', '<>', '')->group('cate')->select()->toArray();
+        $cateList = array_column($cates, 'cate');
+
+        View::assign(array_merge($this->assignAdminUser(), [
+            'menus'    => $this->getMenus(),
+            'keyword'  => $keyword,
+            'cate'     => $cate,
+            'cateList' => $cateList,
+        ]));
+        return View::fetch();
+    }
+
+    public function list()
+    {
+        $page    = intval($this->request->get('page', 1));
+        $limit   = intval($this->request->get('limit', 20));
+        $keyword = $this->request->get('keyword', '');
+        $cate    = $this->request->get('cate', '');
+
         $query = Db::name('goods');
         if ($keyword !== '') {
             $query->where(function ($q) use ($keyword) {
@@ -27,19 +46,10 @@ class Stock extends BaseController
             $query->where('cate', $cate);
         }
 
-        $list = $query->order('id desc')->select()->toArray();
+        $count = $query->count();
+        $list  = $query->order('id desc')->page($page, $limit)->select()->toArray();
 
-        $cates = Db::name('goods')->field('cate')->where('cate', '<>', '')->group('cate')->select()->toArray();
-        $cateList = array_column($cates, 'cate');
-
-        View::assign(array_merge($this->assignAdminUser(), [
-            'menus'    => $this->getMenus(),
-            'list'     => $list,
-            'keyword'  => $keyword,
-            'cate'     => $cate,
-            'cateList' => $cateList,
-        ]));
-        return View::fetch();
+        return json(['code' => 0, 'msg' => '', 'count' => $count, 'data' => $list]);
     }
 
     public function updateThreshold()
