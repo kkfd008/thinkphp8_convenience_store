@@ -72,6 +72,8 @@ Route::post('/cashier/doCheckout', 'cashier/doCheckout');
 Route::get('/order/index', 'order/index');
 Route::get('/order/detail', 'order/detail');
 Route::get('/order/export', 'order/export');
+Route::post('/order/import', 'order/import');
+Route::get('/order/downloadTemplate', 'order/downloadTemplate');
 
 Route::get('/member/cateList', 'member/cateList');
 Route::post('/member/cateAdd', 'member/cateAdd');

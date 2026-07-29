@@ -5,7 +5,9 @@
     <div class="layui-inline"><input type="text" id="search-start" placeholder="开始日期…" class="layui-input" value="{$start_date|default=''}"></div>
     <div class="layui-inline"><input type="text" id="search-end" placeholder="结束日期…" class="layui-input" value="{$end_date|default=''}"></div>
     <div class="layui-inline"><button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button></div>
-    <div class="layui-inline layui-right"><button class="layui-btn layui-btn-primary" onclick="exportData()"><i class="layui-icon layui-icon-export"></i> 导出</button></div>
+    <div class="layui-inline"><button class="layui-btn layui-btn-primary" onclick="exportData()"><i class="layui-icon layui-icon-export"></i> 导出</button></div>
+    <div class="layui-inline"><button class="layui-btn layui-btn-primary" id="import-btn"><i class="layui-icon layui-icon-upload-drag"></i> 导入</button></div>
+    <div class="layui-inline"><button class="layui-btn layui-btn-primary" onclick="downloadTemplate()"><i class="layui-icon layui-icon-download-circle"></i> 模板下载</button></div>
 </div>
 <table id="order-table" lay-filter="orderTable"></table>
 
@@ -56,5 +58,23 @@ window.doSearch = function(){
 };
 
 window.exportData = function(){ location.href = '/order/export'; };
+window.downloadTemplate = function(){ location.href = '/order/downloadTemplate'; };
+
+layui.use(['upload'], function(){
+    var upload = layui.upload;
+    upload.render({
+        elem: '#import-btn',
+        url: '/order/import',
+        accept: 'file',
+        exts: 'xls|xlsx',
+        done: function(res){
+            if (res.code === 0) {
+                layer.msg(res.msg, {icon: 1}, function(){ location.reload(); });
+            } else {
+                layer.msg(res.msg, {icon: 2});
+            }
+        }
+    });
+});
 </script>
 {/block}
