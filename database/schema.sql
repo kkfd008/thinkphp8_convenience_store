@@ -109,6 +109,8 @@ CREATE TABLE IF NOT EXISTS order_detail (
     retail_price DECIMAL(10,2) DEFAULT 0.00,
     quantity INTEGER DEFAULT 0,
     total_amount DECIMAL(10,2) DEFAULT 0.00,
+    discount_amount DECIMAL(10,2) DEFAULT 0.00,
+    pay_amount DECIMAL(10,2) DEFAULT 0.00,
     create_time INTEGER DEFAULT 0
 );
 

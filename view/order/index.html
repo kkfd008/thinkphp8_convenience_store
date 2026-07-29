@@ -33,8 +33,10 @@ layui.use(['table', 'laydate'], function(){
             {field: 'total_amount', title: '原价', width: 80},
             {field: 'discount_amount', title: '折扣', width: 80},
             {field: 'pay_amount', title: '实付', width: 80},
-            {field: 'pay_type', title: '支付方式', width: 90, templet: function(d){ return d.pay_type == 1 ? '现金' : '会员余额'; }},
-            {field: 'member_name', title: '会员', width: 100, templet: function(d){ return d.member_name || '-'; }},
+            {field: 'pay_type_text', title: '支付方式', width: 90},
+            {field: 'buyer_name', title: '购买者', width: 90},
+            {field: 'buyer_phone', title: '电话', width: 120},
+            {field: 'operator_name', title: '操作员', width: 90},
             {field: 'create_time', title: '时间', width: 170, templet: function(d){ return new Date(d.create_time * 1000).toLocaleString(); }},
             {title: '操作', toolbar: '#toolbar', width: 80}
         ]],

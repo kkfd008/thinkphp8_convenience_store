@@ -4,6 +4,7 @@ declare (strict_types=1);
 namespace app\controller;
 
 use app\BaseController;
+use app\service\OrderDisplayService;
 use app\service\OrderImportService;
 use app\service\OrderNoService;
 use app\service\DiscountCalculator;
@@ -25,7 +26,8 @@ class Order extends BaseController
 
         $query = Db::name('order')->alias('o')
             ->leftJoin('member m', 'o.member_id = m.id')
-            ->field('o.*, m.name as member_name, m.phone as member_phone');
+            ->leftJoin('admin_user a', 'o.operator_id = a.id')
+            ->field('o.*, m.name as member_name, m.phone as member_phone, a.username as operator_name');
 
         if ($keyword !== '') {
             $query->where('o.order_no', 'like', "%{$keyword}%");
@@ -44,6 +46,9 @@ class Order extends BaseController
         }
 
         $list = $query->order('o.id desc')->select()->toArray();
+
+        $displayService = new OrderDisplayService();
+        $list = $displayService->formatList($list);
 
         View::assign(array_merge($this->assignAdminUser(), [
             'menus'      => $this->getMenus(),
@@ -81,16 +86,21 @@ class Order extends BaseController
     {
         $list = Db::name('order')->alias('o')
             ->leftJoin('member m', 'o.member_id = m.id')
-            ->field('o.*, m.name as member_name')
+            ->leftJoin('admin_user a', 'o.operator_id = a.id')
+            ->field('o.*, m.name as member_name, m.phone as member_phone, a.username as operator_name')
             ->select()->toArray();
 
-        $headers = ['订单号', '原价', '折扣', '实付', '支付方式', '会员', '收银员ID', '时间'];
+        $displayService = new OrderDisplayService();
+        $list = $displayService->formatList($list);
+
+        $headers = ['订单号', '原价', '折扣', '实付', '支付方式', '购买者', '电话', '操作员', '时间'];
         $data = [];
         foreach ($list as $row) {
             $data[] = [
                 $row['order_no'], $row['total_amount'], $row['discount_amount'],
-                $row['pay_amount'], $row['pay_type'] == 1 ? '现金' : '会员余额',
-                $row['member_name'] ?: '-', $row['operator_id'],
+                $row['pay_amount'], $row['pay_type_text'],
+                $row['buyer_name'], $row['buyer_phone'],
+                $row['operator_name'],
                 date('Y-m-d H:i:s', $row['create_time']),
             ];
         }
