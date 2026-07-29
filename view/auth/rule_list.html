@@ -29,8 +29,9 @@ function flattenRules(rules, level) {
 }
 flattenRules(ruleData);
 
-layui.use(['table'], function(){
+layui.use(['table', 'form'], function(){
     var table = layui.table;
+    var form = layui.form;
     table.render({
         elem: '#rule-table',
         data: ruleFlat,
@@ -78,6 +79,7 @@ window.openRuleEdit = function(pid, data){
         area: ['500px', '380px'],
         content: html,
         btn: ['保存', '取消'],
+        success: function(){ form.render('select'); },
         yes: function(index, layero){
             var form = layui.$(layero);
             var postData = {

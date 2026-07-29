@@ -40,12 +40,14 @@
 <script>
 var purchaseList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
 
-layui.use(['table', 'laydate', 'upload'], function(){
+layui.use(['table', 'laydate', 'upload', 'form'], function(){
     var table = layui.table;
     var laydate = layui.laydate;
     var upload = layui.upload;
+    var form = layui.form;
     laydate.render({elem: '#search-start'});
     laydate.render({elem: '#search-end'});
+    form.render('select');
 
     upload.render({
         elem: '#import-sheets-btn',

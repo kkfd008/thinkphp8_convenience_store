@@ -16,8 +16,9 @@
 var admins = {:json_encode($admins, JSON_UNESCAPED_UNICODE)};
 var roleList = {:json_encode($roles, JSON_UNESCAPED_UNICODE)};
 
-layui.use(['table'], function(){
+layui.use(['table', 'form'], function(){
     var table = layui.table;
+    var form = layui.form;
     table.render({
         elem: '#admin-table',
         data: admins,
@@ -61,6 +62,7 @@ window.openAdminEdit = function(data){
         area: ['450px', '320px'],
         content: html,
         btn: ['保存', '取消'],
+        success: function(){ form.render('select'); },
         yes: function(index, layero){
             var formDom = layui.$(layero);
             var postData = {

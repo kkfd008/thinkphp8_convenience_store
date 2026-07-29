@@ -34,9 +34,11 @@
 <script>
 var supplierList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
 
-layui.use(['table', 'upload'], function(){
+layui.use(['table', 'upload', 'form'], function(){
     var table = layui.table;
     var upload = layui.upload;
+    var form = layui.form;
+    form.render('select');
 
     upload.render({
         elem: '#import-btn',
@@ -112,6 +114,7 @@ window.openEdit = function(data){
         area: ['500px', '450px'],
         content: html,
         btn: ['保存', '取消'],
+        success: function(){ form.render('select'); },
         yes: function(index, layero){
             var form = layui.$(layero);
             var postData = {

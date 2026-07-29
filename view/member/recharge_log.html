@@ -17,10 +17,11 @@
 <script>
 var logList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
 
-layui.use(['table', 'laydate'], function(){
+layui.use(['table', 'laydate', 'form'], function(){
     var table = layui.table;
     layui.laydate.render({elem: '#search-start'});
     layui.laydate.render({elem: '#search-end'});
+    layui.form.render('select');
 
     table.render({
         elem: '#log-table',
