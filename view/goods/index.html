@@ -143,7 +143,13 @@ window.openEdit = function(data){
         layer.open({
             type: 1, title: isEdit ? '编辑商品' : '新增商品', area: ['550px', '540px'], content: html,
             btn: ['保存', '取消'],
-            success: function(){ layui.form.render('select'); },
+            success: function(layero){
+                var index = layero.attr('times');
+                // 延迟确保 DOM 就绪后再渲染 select
+                setTimeout(function(){
+                    layui.form.render('select');
+                }, 100);
+            },
             yes: function(index, layero){
                 var form = layui.$(layero).find('.layui-form');
                 var postData = {

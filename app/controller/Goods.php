@@ -5,6 +5,7 @@ namespace app\controller;
 
 use app\BaseController;
 use app\service\BarcodeService;
+use app\service\GoodsCateService;
 use think\facade\Db;
 use think\facade\View;
 
@@ -32,14 +33,17 @@ class Goods extends BaseController
         }
         $list = $query->order('id desc')->select()->toArray();
 
-        $cates = Db::name('goods_cate')->where('status', 1)->order('id asc')->select()->toArray();
+        $cateService = new GoodsCateService();
+        $cates = $cateService->getActiveCates();
+        $cateOptions = $cateService->getCateSelectOptions($cates);
 
         View::assign(array_merge($this->assignAdminUser(), [
-            'menus'    => $this->getMenus(),
-            'list'     => $list,
-            'keyword'  => $keyword,
-            'cate'     => $cate,
-            'cateList' => $cates,
+            'menus'       => $this->getMenus(),
+            'list'        => $list,
+            'keyword'     => $keyword,
+            'cate'        => $cate,
+            'cateList'    => $cates,
+            'cateOptions' => $cateOptions,
         ]));
         return View::fetch();
     }
