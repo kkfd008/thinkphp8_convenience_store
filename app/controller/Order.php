@@ -22,6 +22,25 @@ class Order extends BaseController
         $startDate = $this->request->get('start_date', '');
         $endDate   = $this->request->get('end_date', '');
 
+        View::assign(array_merge($this->assignAdminUser(), [
+            'menus'      => $this->getMenus(),
+            'keyword'    => $keyword,
+            'member_id'  => $memberId,
+            'start_date' => $startDate,
+            'end_date'   => $endDate,
+        ]));
+        return View::fetch();
+    }
+
+    public function list()
+    {
+        $page      = intval($this->request->get('page', 1));
+        $limit     = intval($this->request->get('limit', 20));
+        $keyword   = $this->request->get('keyword', '');
+        $memberId  = $this->request->get('member_id', '');
+        $startDate = $this->request->get('start_date', '');
+        $endDate   = $this->request->get('end_date', '');
+
         $admin = session('admin_user');
 
         $query = Db::name('order')->alias('o')
@@ -45,20 +64,13 @@ class Order extends BaseController
             $query->where('o.operator_id', $admin['id']);
         }
 
-        $list = $query->order('o.id desc')->select()->toArray();
+        $count = $query->count();
+        $rawList = $query->order('o.id desc')->page($page, $limit)->select()->toArray();
 
         $displayService = new OrderDisplayService();
-        $list = $displayService->formatList($list);
+        $list = $displayService->formatList($rawList);
 
-        View::assign(array_merge($this->assignAdminUser(), [
-            'menus'      => $this->getMenus(),
-            'list'       => $list,
-            'keyword'    => $keyword,
-            'member_id'  => $memberId,
-            'start_date' => $startDate,
-            'end_date'   => $endDate,
-        ]));
-        return View::fetch();
+        return json(['code' => 0, 'msg' => '', 'count' => $count, 'data' => $list]);
     }
 
     public function detail()
