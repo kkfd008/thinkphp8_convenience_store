@@ -73,6 +73,7 @@ Route::get('/cashier/searchMember', 'cashier/searchMember');
 Route::post('/cashier/doCheckout', 'cashier/doCheckout');
 
 Route::get('/order/index', 'order/index');
+Route::get('/order/list', 'order/list');
 Route::get('/order/detail', 'order/detail');
 Route::get('/order/export', 'order/export');
 Route::post('/order/import', 'order/import');

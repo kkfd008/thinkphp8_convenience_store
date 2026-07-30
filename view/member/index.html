@@ -18,7 +18,6 @@
 
 {block name="script"}
 <script>
-var memberList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
 var cates = {:json_encode($cates, JSON_UNESCAPED_UNICODE)};
 
 layui.use(['table', 'form'], function(){
@@ -26,7 +25,8 @@ layui.use(['table', 'form'], function(){
     var form = layui.form;
     table.render({
         elem: '#member-table',
-        data: memberList,
+        url: '/member/list',
+        where: {keyword: '{$keyword|default=""}'},
         cols: [[
             {field: 'id', title: 'ID', width: 60},
             {field: 'name', title: '姓名', width: 100},
@@ -37,7 +37,7 @@ layui.use(['table', 'form'], function(){
             {field: 'create_time', title: '创建时间', width: 170, templet: function(d){ return d.create_time ? new Date(d.create_time * 1000).toLocaleString() : '-'; }},
             {title: '操作', toolbar: '#toolbar', width: 120}
         ]],
-        page: false
+        page: {limits: [10, 20, 50, 100, 200]}
     });
 
     table.on('tool(memberTable)', function(obj){
@@ -81,7 +81,11 @@ window.openEdit = function(data){
     });
 };
 
-window.doSearch = function(){ location.href = '/member/index?keyword=' + encodeURIComponent($('#search-keyword').val()); };
+window.doSearch = function(){
+    layui.table.reload('member-table', {
+        where: {keyword: $('#search-keyword').val()}
+    });
+};
 window.exportData = function(){ location.href = '/member/export'; };
 </script>
 {/block}

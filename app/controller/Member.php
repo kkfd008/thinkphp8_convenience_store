@@ -57,6 +57,22 @@ class Member extends BaseController
     public function index()
     {
         $keyword = $this->request->get('keyword', '');
+        $cates = Db::name('member_cate')->select()->toArray();
+
+        View::assign(array_merge($this->assignAdminUser(), [
+            'menus'   => $this->getMenus(),
+            'keyword' => $keyword,
+            'cates'   => $cates,
+        ]));
+        return View::fetch();
+    }
+
+    public function list()
+    {
+        $page    = intval($this->request->get('page', 1));
+        $limit   = intval($this->request->get('limit', 20));
+        $keyword = $this->request->get('keyword', '');
+
         $query = Db::name('member')->alias('m')
             ->leftJoin('member_cate mc', 'm.cate_id = mc.id')
             ->field('m.*, mc.name as cate_name, mc.discount');
@@ -68,16 +84,10 @@ class Member extends BaseController
             });
         }
 
-        $list = $query->order('m.id desc')->select()->toArray();
-        $cates = Db::name('member_cate')->select()->toArray();
+        $count = $query->count();
+        $list  = $query->order('m.id desc')->page($page, $limit)->select()->toArray();
 
-        View::assign(array_merge($this->assignAdminUser(), [
-            'menus'   => $this->getMenus(),
-            'list'    => $list,
-            'keyword' => $keyword,
-            'cates'   => $cates,
-        ]));
-        return View::fetch();
+        return json(['code' => 0, 'msg' => '', 'count' => $count, 'data' => $list]);
     }
 
     public function add()
@@ -189,6 +199,26 @@ class Member extends BaseController
         $startDate = $this->request->get('start_date', '');
         $endDate   = $this->request->get('end_date', '');
 
+        $members = Db::name('member')->order('id desc')->select()->toArray();
+
+        View::assign(array_merge($this->assignAdminUser(), [
+            'menus'     => $this->getMenus(),
+            'member_id' => $memberId,
+            'start_date'=> $startDate,
+            'end_date'  => $endDate,
+            'members'   => $members,
+        ]));
+        return View::fetch();
+    }
+
+    public function rechargeLogList()
+    {
+        $page      = intval($this->request->get('page', 1));
+        $limit     = intval($this->request->get('limit', 20));
+        $memberId  = $this->request->get('member_id', '');
+        $startDate = $this->request->get('start_date', '');
+        $endDate   = $this->request->get('end_date', '');
+
         $query = Db::name('member_recharge')->alias('mr')
             ->leftJoin('member m', 'mr.member_id = m.id')
             ->field('mr.*, m.name as member_name, m.phone as member_phone');
@@ -203,18 +233,10 @@ class Member extends BaseController
             $query->where('mr.create_time', '<', strtotime($endDate) + 86400);
         }
 
-        $list = $query->order('mr.id desc')->select()->toArray();
-        $members = Db::name('member')->order('id desc')->select()->toArray();
+        $count = $query->count();
+        $list  = $query->order('mr.id desc')->page($page, $limit)->select()->toArray();
 
-        View::assign(array_merge($this->assignAdminUser(), [
-            'menus'     => $this->getMenus(),
-            'list'      => $list,
-            'member_id' => $memberId,
-            'start_date'=> $startDate,
-            'end_date'  => $endDate,
-            'members'   => $members,
-        ]));
-        return View::fetch();
+        return json(['code' => 0, 'msg' => '', 'count' => $count, 'data' => $list]);
     }
 
     public function export()
