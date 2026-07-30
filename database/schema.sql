@@ -107,6 +107,7 @@ CREATE TABLE IF NOT EXISTS order_detail (
     barcode VARCHAR(50) NOT NULL,
     goods_name VARCHAR(100) NOT NULL,
     retail_price DECIMAL(10,2) DEFAULT 0.00,
+    purchase_price DECIMAL(10,2) DEFAULT 0.00,
     quantity INTEGER DEFAULT 0,
     total_amount DECIMAL(10,2) DEFAULT 0.00,
     discount_amount DECIMAL(10,2) DEFAULT 0.00,

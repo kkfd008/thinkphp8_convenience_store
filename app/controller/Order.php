@@ -200,6 +200,10 @@ class Order extends BaseController
                 $member = Db::name('member')->where('phone', $firstItem['member_phone'])->find();
                 $memberId = $member ? $member['id'] : 0;
             }
+            if ($memberId === 0 && !empty($firstItem['member_name'])) {
+                $member = Db::name('member')->where('name', $firstItem['member_name'])->find();
+                $memberId = $member ? $member['id'] : 0;
+            }
 
             $createTime = !empty($firstItem['create_time']) ? strtotime($firstItem['create_time']) : time();
 
@@ -224,6 +228,7 @@ class Order extends BaseController
                         'goods_name'     => $item['goods_name'] ?: ($goods['name'] ?? ''),
                         'quantity'       => $item['quantity'],
                         'retail_price'   => $item['retail_price'],
+                        'purchase_price' => $item['purchase_price'],
                         'total_amount'   => $item['total_amount'],
                         'discount_amount' => $item['discount_amount'],
                         'pay_amount'     => $item['pay_amount'],
