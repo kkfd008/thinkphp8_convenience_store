@@ -15,8 +15,6 @@
 
 {block name="script"}
 <script>
-var logList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
-
 layui.use(['table', 'laydate', 'form'], function(){
     var table = layui.table;
     layui.laydate.render({elem: '#search-start'});
@@ -25,7 +23,12 @@ layui.use(['table', 'laydate', 'form'], function(){
 
     table.render({
         elem: '#log-table',
-        data: logList,
+        url: '/member/rechargeLogList',
+        where: {
+            member_id: '{$member_id|default=""}',
+            start_date: '{$start_date|default=""}',
+            end_date: '{$end_date|default=""}'
+        },
         cols: [[
             {field: 'member_name', title: '会员', width: 100},
             {field: 'member_phone', title: '手机号', width: 120},
@@ -34,19 +37,18 @@ layui.use(['table', 'laydate', 'form'], function(){
             {field: 'after_balance', title: '充值后余额', width: 110},
             {field: 'create_time', title: '充值时间', width: 170, templet: function(d){ return d.create_time ? new Date(d.create_time * 1000).toLocaleString() : '-'; }}
         ]],
-        page: false
+        page: {limits: [10, 20, 50, 100, 200]}
     });
 });
 
 window.doSearch = function(){
-    var params = [];
-    var member = $('#search-member').val();
-    if (member) params.push('member_id=' + member);
-    var start = $('#search-start').val();
-    if (start) params.push('start_date=' + start);
-    var end = $('#search-end').val();
-    if (end) params.push('end_date=' + end);
-    location.href = '/member/rechargeLog' + (params.length ? '?' + params.join('&') : '');
+    layui.table.reload('log-table', {
+        where: {
+            member_id: $('#search-member').val(),
+            start_date: $('#search-start').val(),
+            end_date: $('#search-end').val()
+        }
+    });
 };
 </script>
 {/block}

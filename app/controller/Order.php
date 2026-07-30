@@ -156,17 +156,19 @@ class Order extends BaseController
         $orderRows = [];
         foreach ($rows as $i => $row) {
             $rowData = [
-                'order_no'      => trim($row[0] ?? ''),
-                'barcode'       => trim($row[1] ?? ''),
-                'goods_name'    => trim($row[2] ?? ''),
-                'quantity'      => intval($row[3] ?? 0),
-                'retail_price'  => floatval($row[4] ?? 0),
-                'total_amount'  => floatval($row[5] ?? 0),
-                'discount_amount' => floatval($row[6] ?? 0),
-                'pay_amount'    => floatval($row[7] ?? 0),
-                'pay_type'      => trim($row[8] ?? ''),
-                'member_phone'  => trim($row[9] ?? ''),
-                'create_time'   => trim($row[10] ?? ''),
+                'order_no'       => trim($row[0] ?? ''),
+                'barcode'        => trim($row[1] ?? ''),
+                'goods_name'     => trim($row[2] ?? ''),
+                'quantity'       => intval($row[3] ?? 0),
+                'retail_price'   => floatval($row[4] ?? 0),
+                'purchase_price' => floatval($row[5] ?? 0),
+                'total_amount'   => floatval($row[6] ?? 0),
+                'discount_amount' => floatval($row[7] ?? 0),
+                'pay_amount'     => floatval($row[8] ?? 0),
+                'pay_type'       => trim($row[9] ?? ''),
+                'member_name'    => trim($row[10] ?? ''),
+                'member_phone'   => trim($row[11] ?? ''),
+                'create_time'    => trim($row[12] ?? ''),
             ];
 
             $validateResult = $importService->validateRow($rowData);
