@@ -2,7 +2,7 @@
 {block name="content"}
 <div class="search-form">
     <div class="layui-inline">
-        <input type="text" id="search-keyword" placeholder="名称/条码/分类…" class="layui-input" value="{$keyword|default=''}">
+        <input type="text" id="search-keyword" placeholder="名称/条码/拼音码…" class="layui-input" value="{$keyword|default=''}">
     </div>
     <div class="layui-inline">
         <select id="search-cate">
@@ -14,6 +14,21 @@
         </select>
     </div>
     <div class="layui-inline">
+        <select id="search-supplier">
+            <option value="0">全部供货商</option>
+            {foreach $suppliers as $s}
+            <option value="{$s.id}" {if isset($supplierId) && $supplierId==$s.id}selected{/if}>{$s.name}</option>
+            {/foreach}
+        </select>
+    </div>
+    <div class="layui-inline">
+        <select id="search-status">
+            <option value="">全部状态</option>
+            <option value="1" {if isset($status) && $status==='1'}selected{/if}>上架</option>
+            <option value="0" {if isset($status) && $status==='0'}selected{/if}>下架</option>
+        </select>
+    </div>
+    <div class="layui-inline">
         <button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button>
     </div>
     <div class="btn-group-right">
@@ -22,6 +37,8 @@
         <button class="layui-btn layui-btn-primary" onclick="downloadTemplate()" aria-label="下载模板"><i class="layui-icon layui-icon-download-circle"></i> 下载模板</button>
         <button class="layui-btn layui-btn-primary" onclick="exportData()" aria-label="导出"><i class="layui-icon layui-icon-export"></i> 导出</button>
         <button class="layui-btn layui-btn-normal" id="btn-batch-cate" aria-label="批量修改分类">批量改分类</button>
+        <button class="layui-btn layui-btn-warm" id="btn-batch-toggle" aria-label="批量上下架">批量上下架</button>
+        <button class="layui-btn layui-btn-danger" id="btn-batch-delete" aria-label="批量删除">批量删除</button>
     </div>
 </div>
 <table id="goods-table" lay-filter="goodsTable"></table>
@@ -35,6 +52,7 @@
 {block name="script"}
 <script>
 var goodsCateList = {:json_encode($cateList, JSON_UNESCAPED_UNICODE)};
+var supplierList = {:json_encode($suppliers, JSON_UNESCAPED_UNICODE)};
 var selectedIds = {};
 
 layui.use(['table', 'upload', 'form'], function(){
@@ -44,20 +62,28 @@ layui.use(['table', 'upload', 'form'], function(){
         url: '/goods/list',
         where: {
             keyword: '{$keyword|default=""}',
-            cate: '{$cate|default=""}'
+            cate: '{$cate|default=""}',
+            supplier_id: '{$supplierId|default=0}',
+            status: '{$status|default=""}'
         },
         cols: [[
             {type: 'checkbox'},
-            {field: 'id', title: 'ID', width: 240},
-            {field: 'name', title: '名称', width: 260},
-            {field: 'barcode', title: '条码', width: 150},
-            {field: 'unit', title: '单位', width: 60},
-            {field: 'box_spec', title: '箱规', width: 60, templet: function(d){ return d.box_spec ? d.box_spec : '-'; }},
-            {field: 'purchase_price', title: '进货价', width: 80},
-            {field: 'retail_price', title: '零售价', width: 80},
-            {field: 'stock', title: '库存', width: 80},
-            {field: 'cate', title: '分类', width: 90},
-            {field: 'create_time', title: '创建时间', width: 170, templet: function(d){
+            {field: 'id', title: 'ID', width: 60},
+            {field: 'name', title: '名称', width: 140},
+            {field: 'barcode', title: '条码', width: 120},
+            {field: 'pinyin_code', title: '拼音码', width: 80},
+            {field: 'unit', title: '单位', width: 55},
+            {field: 'box_spec', title: '箱规', width: 55, templet: function(d){ return d.box_spec ? d.box_spec : '-'; }},
+            {field: 'purchase_price', title: '进货价', width: 75},
+            {field: 'retail_price', title: '零售价', width: 75},
+            {field: 'stock', title: '库存', width: 65},
+            {field: 'cate', title: '分类', width: 75},
+            {field: 'supplier_name', title: '供货商', width: 90, templet: function(d){ return d.supplier_name || '-'; }},
+            {field: 'location', title: '库位', width: 65, templet: function(d){ return d.location || '-'; }},
+            {field: 'status', title: '状态', width: 60, templet: function(d){
+                return d.status == 1 ? '<span style="color:#009688;">上架</span>' : '<span style="color:#999;">下架</span>';
+            }},
+            {field: 'create_time', title: '创建时间', width: 155, templet: function(d){
                 return d.create_time ? new Date(d.create_time * 1000).toLocaleString() : '-';
             }},
             {title: '操作', toolbar: '#toolbar', width: 120}
@@ -68,7 +94,7 @@ layui.use(['table', 'upload', 'form'], function(){
     table.on('checkbox(goodsTable)', function(obj){
         if (obj.type === 'all') {
             var allChecked = obj.checked;
-            var currentData = layui.table.cache['goodsTable'] || goodsList;
+            var currentData = layui.table.cache['goodsTable'] || [];
             if (allChecked) {
                 currentData.forEach(function(d){ selectedIds[d.id] = true; });
             } else {
@@ -81,8 +107,7 @@ layui.use(['table', 'upload', 'form'], function(){
                 delete selectedIds[obj.data.id];
             }
         }
-        var count = Object.keys(selectedIds).length;
-        $('#btn-batch-cate').text('批量改分类' + (count > 0 ? '（' + count + '）' : ''));
+        updateBatchButtons();
     });
 
     table.on('tool(goodsTable)', function(obj){
@@ -98,6 +123,13 @@ layui.use(['table', 'upload', 'form'], function(){
         }
     });
 });
+
+function updateBatchButtons(){
+    var count = Object.keys(selectedIds).length;
+    $('#btn-batch-cate').text('批量改分类' + (count > 0 ? '（' + count + '）' : ''));
+    $('#btn-batch-toggle').text('批量上下架' + (count > 0 ? '（' + count + '）' : ''));
+    $('#btn-batch-delete').text('批量删除' + (count > 0 ? '（' + count + '）' : ''));
+}
 
 $('#btn-batch-cate').on('click', function(){
     var ids = Object.keys(selectedIds);
@@ -116,15 +148,45 @@ $('#btn-batch-cate').on('click', function(){
             var loading = layer.load();
             $.post('/goods/batchCate', {ids: JSON.stringify(ids.map(Number)), cate: cate}, function(res){
                 layer.close(loading);
-                if (res.code === 0) {
-                    layer.msg(res.msg, {icon:1});
-                    setTimeout(function(){ location.reload(); }, 500);
-                } else {
-                    layer.msg(res.msg, {icon:2});
-                }
+                if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                else layer.msg(res.msg, {icon:2});
             });
             layer.close(index);
         }
+    });
+});
+
+$('#btn-batch-toggle').on('click', function(){
+    var ids = Object.keys(selectedIds);
+    if (ids.length === 0) { layer.msg('请勾选商品'); return; }
+    var html = '<div style="padding:20px;">\
+        <div class="layui-form-item"><label class="layui-form-label">目标状态</label>\
+        <div class="layui-input-block"><select id="batch-toggle-select"><option value="1">上架</option><option value="0">下架</option></select></div></div>\
+        <div style="color:#999;margin-top:8px;">已选中 <strong>' + ids.length + '</strong> 个商品</div>\
+    </div>';
+    layer.open({
+        type: 1, title: '批量上下架', area: ['420px', '220px'], content: html,
+        btn: ['确定', '取消'],
+        yes: function(index, layero){
+            var status = $(layero).find('#batch-toggle-select').val();
+            $.post('/goods/batchToggleStatus', {ids: ids.join(','), status: status}, function(res){
+                if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                else layer.msg(res.msg, {icon:2});
+            });
+            layer.close(index);
+        }
+    });
+});
+
+$('#btn-batch-delete').on('click', function(){
+    var ids = Object.keys(selectedIds);
+    if (ids.length === 0) { layer.msg('请勾选商品'); return; }
+    layer.confirm('确认删除选中的 ' + ids.length + ' 个商品？', {icon:3, title:'批量删除'}, function(index){
+        $.post('/goods/batchDelete', {ids: ids.join(',')}, function(res){
+            if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+            else layer.msg(res.msg, {icon:2});
+        });
+        layer.close(index);
     });
 });
 
@@ -132,6 +194,9 @@ window.openEdit = function(data){
     var isEdit = !!data;
     $.post('/goods/genBarcode', {}, function(res){
         var genBarcode = res.data.barcode;
+        var supplierOpts = supplierList.map(function(s){ return '<option value="' + s.id + '" ' + (isEdit && data.supplier_id == s.id ? 'selected' : '') + '>' + s.name + '</option>'; }).join('');
+        var expiryVal = isEdit && data.expiry_date ? new Date(data.expiry_date * 1000).toISOString().slice(0, 10) : '';
+
         var html = '<div class="layui-form" style="padding:20px;">\
             <div class="layui-form-item"><label class="layui-form-label">名称</label><div class="layui-input-block"><input type="text" name="name" value="'+(isEdit?data.name:'')+'" class="layui-input"></div></div>\
             <div class="layui-form-item"><label class="layui-form-label">条码</label><div class="layui-input-inline"><input type="text" name="barcode" id="edit-barcode" value="'+(isEdit?data.barcode:genBarcode)+'" class="layui-input" '+(isEdit?'readonly':'')+'></div><div class="layui-input-inline" style="width:auto"><button class="layui-btn layui-btn-primary" onclick="genRandomBarcode()">随机生成</button></div></div>\
@@ -140,19 +205,20 @@ window.openEdit = function(data){
             <div class="layui-form-item"><label class="layui-form-label">进货价</label><div class="layui-input-block"><input type="number" step="0.01" name="purchase_price" value="'+(isEdit?data.purchase_price:'')+'" class="layui-input"></div></div>\
             <div class="layui-form-item"><label class="layui-form-label">零售价</label><div class="layui-input-block"><input type="number" step="0.01" name="retail_price" value="'+(isEdit?data.retail_price:'')+'" class="layui-input"></div></div>\
             <div class="layui-form-item"><label class="layui-form-label">分类</label><div class="layui-input-block"><select name="cate"><option value="">请选择分类</option>' + goodsCateList.map(function(c){ return '<option value="' + c.name + '" ' + (isEdit && data.cate === c.name ? 'selected' : '') + '>' + c.name + '</option>'; }).join('') + '</select></div></div>\
+            <div class="layui-form-item"><label class="layui-form-label">供货商</label><div class="layui-input-block"><select name="supplier_id"><option value="0">无</option>' + supplierOpts + '</select></div></div>\
+            <div class="layui-form-item"><label class="layui-form-label">库位</label><div class="layui-input-block"><input type="text" name="location" value="'+(isEdit?data.location||'':'')+'" class="layui-input" placeholder="如：A-01-03"></div></div>\
+            <div class="layui-form-item"><label class="layui-form-label">到期日期</label><div class="layui-input-block"><input type="date" name="expiry_date" value="'+expiryVal+'" class="layui-input"></div></div>\
             <div class="layui-form-item"><label class="layui-form-label">库存下限</label><div class="layui-input-block"><input type="number" name="stock_min" value="'+(isEdit&&data.stock_min?data.stock_min:'')+'" class="layui-input"></div></div>\
             <div class="layui-form-item"><label class="layui-form-label">库存上限</label><div class="layui-input-block"><input type="number" name="stock_max" value="'+(isEdit&&data.stock_max?data.stock_max:'')+'" class="layui-input"></div></div>\
+            <div class="layui-form-item"><label class="layui-form-label">状态</label><div class="layui-input-block"><select name="status"><option value="1" ' + (!isEdit || data.status == 1 ? 'selected' : '') + '>上架</option><option value="0" ' + (isEdit && data.status == 0 ? 'selected' : '') + '>下架</option></select></div></div>\
         </div>';
         layer.open({
-            type: 1, title: isEdit ? '编辑商品' : '新增商品', area: ['550px', '540px'], content: html,
+            type: 1, title: isEdit ? '编辑商品' : '新增商品', area: ['580px', '650px'], content: html,
             btn: ['保存', '取消'],
             success: function(layero){
-                // 确保 form 模块加载后再渲染
                 layui.use('form', function(){
                     var form = layui.form;
-                    setTimeout(function(){
-                        form.render('select');
-                    }, 50);
+                    setTimeout(function(){ form.render('select'); }, 50);
                 });
             },
             yes: function(index, layero){
@@ -166,8 +232,12 @@ window.openEdit = function(data){
                     purchase_price: form.find('[name=purchase_price]').val(),
                     retail_price: form.find('[name=retail_price]').val(),
                     cate: form.find('[name=cate]').val(),
+                    supplier_id: form.find('[name=supplier_id]').val(),
+                    location: form.find('[name=location]').val(),
+                    expiry_date: form.find('[name=expiry_date]').val(),
                     stock_min: form.find('[name=stock_min]').val(),
-                    stock_max: form.find('[name=stock_max]').val()
+                    stock_max: form.find('[name=stock_max]').val(),
+                    status: form.find('[name=status]').val()
                 };
                 if (!postData.name) { layer.msg('请输入名称'); return; }
                 if (!postData.barcode) { layer.msg('请输入条码'); return; }
@@ -222,7 +292,9 @@ window.doSearch = function(){
     layui.table.reload('goods-table', {
         where: {
             keyword: $('#search-keyword').val(),
-            cate: $('#search-cate').val()
+            cate: $('#search-cate').val(),
+            supplier_id: $('#search-supplier').val(),
+            status: $('#search-status').val()
         }
     });
 };

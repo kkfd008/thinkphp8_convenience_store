@@ -6,6 +6,7 @@ namespace app\controller;
 use app\BaseController;
 use app\service\BarcodeService;
 use app\service\GoodsCateService;
+use app\service\PinyinService;
 use think\facade\Db;
 use think\facade\View;
 
@@ -15,45 +16,66 @@ class Goods extends BaseController
 
     public function index()
     {
-        $keyword = $this->request->get('keyword', '');
-        $cate    = $this->request->get('cate', '');
+        $keyword    = $this->request->get('keyword', '');
+        $cate       = $this->request->get('cate', '');
+        $supplierId = intval($this->request->get('supplier_id', 0));
+        $status     = $this->request->get('status', '');
 
         $cateService = new GoodsCateService();
         $cates = $cateService->getActiveCates();
         $cateOptions = $cateService->getCateSelectOptions($cates);
 
+        // 供货商列表
+        $suppliers = Db::name('supplier')->field('id, name')->where('status', 1)->select()->toArray();
+
         View::assign(array_merge($this->assignAdminUser(), [
             'menus'       => $this->getMenus(),
             'keyword'     => $keyword,
             'cate'        => $cate,
+            'supplierId'  => $supplierId,
+            'status'      => $status,
             'cateList'    => $cates,
             'cateOptions' => $cateOptions,
+            'suppliers'   => $suppliers,
         ]));
         return View::fetch();
     }
 
     public function list()
     {
-        $page    = intval($this->request->get('page', 1));
-        $limit   = intval($this->request->get('limit', 20));
-        $keyword = $this->request->get('keyword', '');
-        $cate    = $this->request->get('cate', '');
+        $page       = intval($this->request->get('page', 1));
+        $limit      = intval($this->request->get('limit', 20));
+        $keyword    = $this->request->get('keyword', '');
+        $cate       = $this->request->get('cate', '');
+        $supplierId = intval($this->request->get('supplier_id', 0));
+        $status     = $this->request->get('status', '');
 
-        $query = Db::name('goods');
+        $query = Db::name('goods')->alias('g')
+            ->leftJoin('supplier s', 'g.supplier_id = s.id')
+            ->field('g.*, s.name as supplier_name');
+
         if ($keyword !== '') {
             $query->where(function ($q) use ($keyword) {
-                $q->where('name', 'like', "%{$keyword}%")
-                  ->whereOr('barcode', 'like', "%{$keyword}%")
-                  ->whereOr('cate', 'like', "%{$keyword}%");
+                $q->where('g.name', 'like', "%{$keyword}%")
+                  ->whereOr('g.barcode', 'like', "%{$keyword}%")
+                  ->whereOr('g.pinyin_code', 'like', "%{$keyword}%")
+                  ->whereOr('g.cate', 'like', "%{$keyword}%");
             });
         }
         if ($cate === '_none_') {
-            $query->where('cate', '');
+            $query->where('g.cate', '');
         } elseif ($cate !== '') {
-            $query->where('cate', $cate);
+            $query->where('g.cate', $cate);
         }
+        if ($supplierId > 0) {
+            $query->where('g.supplier_id', $supplierId);
+        }
+        if ($status !== '') {
+            $query->where('g.status', intval($status));
+        }
+
         $count = $query->count();
-        $list  = $query->order('id desc')->page($page, $limit)->select()->toArray();
+        $list  = $query->order('g.id desc')->page($page, $limit)->select()->toArray();
 
         return json(['code' => 0, 'msg' => '', 'count' => $count, 'data' => $list]);
     }
@@ -68,9 +90,23 @@ class Goods extends BaseController
             return $this->jsonError('该条码已存在');
         }
 
+        // 自动生成拼音码
+        $name = $data['name'] ?? '';
+        $pinyinService = new PinyinService();
+        $pinyinCode = $pinyinService->generatePinyinCode($name);
+
+        // 处理到期日期
+        $expiryStr = $data['expiry_date'] ?? '';
+        $expiryDate = null;
+        if ($expiryStr !== '') {
+            $expiryDate = strtotime($expiryStr);
+            if ($expiryDate === false) $expiryDate = null;
+        }
+
         Db::name('goods')->insert([
-            'name'           => $data['name'] ?? '',
+            'name'           => $name,
             'barcode'        => $barcode,
+            'pinyin_code'    => $pinyinCode,
             'unit'           => $data['unit'] ?? '',
             'box_spec'       => intval($data['box_spec'] ?? 0),
             'purchase_price' => floatval($data['purchase_price'] ?? 0),
@@ -78,7 +114,11 @@ class Goods extends BaseController
             'stock'          => intval($data['stock'] ?? 0),
             'stock_min'      => $data['stock_min'] !== '' ? intval($data['stock_min']) : null,
             'stock_max'      => $data['stock_max'] !== '' ? intval($data['stock_max']) : null,
+            'expiry_date'    => $expiryDate,
+            'location'       => $data['location'] ?? '',
             'cate'           => $data['cate'] ?? '',
+            'supplier_id'    => intval($data['supplier_id'] ?? 0),
+            'status'         => intval($data['status'] ?? 1),
             'create_time'    => time(),
         ]);
         return $this->jsonSuccess([], '新增成功');
@@ -110,9 +150,23 @@ class Goods extends BaseController
             }
         }
 
+        // 名称变更时重新生成拼音码
+        $name = $data['name'] ?? '';
+        $pinyinService = new PinyinService();
+        $pinyinCode = $pinyinService->generatePinyinCode($name);
+
+        // 处理到期日期
+        $expiryStr = $data['expiry_date'] ?? '';
+        $expiryDate = null;
+        if ($expiryStr !== '') {
+            $expiryDate = strtotime($expiryStr);
+            if ($expiryDate === false) $expiryDate = null;
+        }
+
         Db::name('goods')->where('id', $id)->update([
-            'name'           => $data['name'] ?? '',
+            'name'           => $name,
             'barcode'        => $newBarcode,
+            'pinyin_code'    => $pinyinCode,
             'unit'           => $data['unit'] ?? '',
             'box_spec'       => intval($data['box_spec'] ?? 0),
             'purchase_price' => floatval($data['purchase_price'] ?? 0),
@@ -120,6 +174,10 @@ class Goods extends BaseController
             'cate'           => $data['cate'] ?? '',
             'stock_min'      => $data['stock_min'] !== '' ? intval($data['stock_min']) : null,
             'stock_max'      => $data['stock_max'] !== '' ? intval($data['stock_max']) : null,
+            'expiry_date'    => $expiryDate,
+            'location'       => $data['location'] ?? '',
+            'supplier_id'    => intval($data['supplier_id'] ?? 0),
+            'status'         => intval($data['status'] ?? 1),
         ]);
         return $this->jsonSuccess([], '编辑成功');
     }
@@ -144,6 +202,51 @@ class Goods extends BaseController
 
         Db::name('goods')->where('id', $id)->delete();
         return $this->jsonSuccess([], '删除成功');
+    }
+
+    /**
+     * 批量删除
+     */
+    public function batchDelete()
+    {
+        $idsStr = $this->request->post('ids', '');
+        $idArr = array_map('intval', explode(',', $idsStr));
+        $idArr = array_filter($idArr, function ($v) { return $v > 0; });
+
+        if (empty($idArr)) {
+            return $this->jsonError('请选择商品');
+        }
+
+        $goodsList = Db::name('goods')->whereIn('id', $idArr)->select()->toArray();
+        $barcodes = array_column($goodsList, 'barcode');
+
+        $linkedCount = Db::name('purchase_detail')->whereIn('barcode', $barcodes)->count()
+                     + Db::name('order_detail')->whereIn('barcode', $barcodes)->count();
+        if ($linkedCount > 0) {
+            return $this->jsonError('选中商品中存在已关联进货/订单的商品，禁止批量删除');
+        }
+
+        Db::name('goods')->whereIn('id', $idArr)->delete();
+        return $this->jsonSuccess([], '已删除 ' . count($idArr) . ' 个商品');
+    }
+
+    /**
+     * 批量上下架
+     */
+    public function batchToggleStatus()
+    {
+        $idsStr = $this->request->post('ids', '');
+        $status = intval($this->request->post('status', 1));
+        $idArr = array_map('intval', explode(',', $idsStr));
+        $idArr = array_filter($idArr, function ($v) { return $v > 0; });
+
+        if (empty($idArr)) {
+            return $this->jsonError('请选择商品');
+        }
+
+        Db::name('goods')->whereIn('id', $idArr)->update(['status' => $status]);
+        $label = $status == 1 ? '上架' : '下架';
+        return $this->jsonSuccess([], '已' . $label . ' ' . count($idArr) . ' 个商品');
     }
 
     public function genBarcode()
@@ -241,6 +344,7 @@ class Goods extends BaseController
         $failList     = [];
         $existBarcodes = array_column(Db::name('goods')->field('barcode')->select()->toArray(), 'barcode');
         $importBarcodes = [];
+        $pinyinService = new PinyinService();
 
         foreach ($rows as $i => $row) {
             $name   = trim($row[0] ?? '');
@@ -253,6 +357,10 @@ class Goods extends BaseController
             $cate          = trim($row[7] ?? '');
             $stockMin      = isset($row[8]) && $row[8] !== '' ? intval($row[8]) : null;
             $stockMax      = isset($row[9]) && $row[9] !== '' ? intval($row[9]) : null;
+            $location      = trim($row[10] ?? '');
+            $expiryStr     = trim($row[11] ?? '');
+            $supplierName  = trim($row[12] ?? '');
+            $pinyinCode    = $pinyinService->generatePinyinCode($name);
 
             if (empty($name) || empty($barcode)) {
                 $failList[] = "第" . ($i + 2) . "行：商品名称和条码不能为空";
@@ -264,9 +372,24 @@ class Goods extends BaseController
             }
             $importBarcodes[] = $barcode;
 
+            // 查找供货商
+            $supplierId = 0;
+            if ($supplierName !== '') {
+                $supplier = Db::name('supplier')->where('name', $supplierName)->find();
+                $supplierId = $supplier ? $supplier['id'] : 0;
+            }
+
+            // 处理到期日期
+            $expiryDate = null;
+            if ($expiryStr !== '') {
+                $ts = strtotime($expiryStr);
+                if ($ts !== false) $expiryDate = $ts;
+            }
+
             Db::name('goods')->insert([
                 'name'           => $name,
                 'barcode'        => $barcode,
+                'pinyin_code'    => $pinyinCode,
                 'unit'           => $unit,
                 'box_spec'       => $boxSpec,
                 'purchase_price' => $purchasePrice,
@@ -275,6 +398,9 @@ class Goods extends BaseController
                 'cate'           => $cate,
                 'stock_min'      => $stockMin,
                 'stock_max'      => $stockMax,
+                'location'       => $location,
+                'expiry_date'    => $expiryDate,
+                'supplier_id'    => $supplierId,
                 'create_time'    => time(),
             ]);
             $successCount++;
@@ -301,21 +427,29 @@ class Goods extends BaseController
 
     public function downloadTemplate()
     {
-        $headers = ['商品名称', '商品条码', '单位', '箱规', '进货价', '零售价', '库存数量', '商品分类', '最小库存', '最大库存'];
+        $headers = ['商品名称', '商品条码', '单位', '箱规', '进货价', '零售价', '库存数量', '商品分类', '最小库存', '最大库存', '库位', '到期日期', '供货商'];
         $this->downloadExcel($headers, [], '商品导入模板');
     }
 
     public function export()
     {
-        $list = Db::name('goods')->select()->toArray();
-        $headers = ['ID', '名称', '条码', '单位', '箱规', '进货价', '零售价', '库存', '最小库存', '最大库存', '分类', '创建时间'];
+        $list = Db::name('goods')->alias('g')
+            ->leftJoin('supplier s', 'g.supplier_id = s.id')
+            ->field('g.*, s.name as supplier_name')
+            ->select()->toArray();
+
+        $headers = ['ID', '名称', '条码', '拼音码', '单位', '箱规', '进货价', '零售价', '库存', '最小库存', '最大库存', '分类', '库位', '到期日期', '供货商', '状态', '创建时间'];
         $data = [];
         foreach ($list as $row) {
             $data[] = [
-                $row['id'], $row['name'], $row['barcode'], $row['unit'] ?? '',
-                $row['box_spec'] ?? 0,
+                $row['id'], $row['name'], $row['barcode'], $row['pinyin_code'] ?? '',
+                $row['unit'] ?? '', $row['box_spec'] ?? 0,
                 $row['purchase_price'], $row['retail_price'], $row['stock'],
                 $row['stock_min'], $row['stock_max'], $row['cate'],
+                $row['location'] ?? '-',
+                $row['expiry_date'] ? date('Y-m-d', $row['expiry_date']) : '-',
+                $row['supplier_name'] ?? '-',
+                $row['status'] == 1 ? '上架' : '下架',
                 date('Y-m-d H:i:s', $row['create_time']),
             ];
         }

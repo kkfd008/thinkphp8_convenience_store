@@ -56,11 +56,13 @@ CREATE TABLE IF NOT EXISTS goods (
     location VARCHAR(50) DEFAULT '',
     cate VARCHAR(50) DEFAULT '',
     supplier_id INTEGER DEFAULT 0,
+    status TINYINT DEFAULT 1,
     create_time INTEGER DEFAULT 0
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_goods_barcode ON goods(barcode);
 CREATE INDEX IF NOT EXISTS idx_goods_expiry ON goods(expiry_date);
 CREATE INDEX IF NOT EXISTS idx_goods_location ON goods(location);
+CREATE INDEX IF NOT EXISTS idx_goods_status ON goods(status);
 
 -- 6. purchase（进货主表）
 CREATE TABLE IF NOT EXISTS purchase (

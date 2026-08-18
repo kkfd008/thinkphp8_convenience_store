@@ -37,6 +37,8 @@ Route::get('/goods/list', 'goods/list');
 Route::post('/goods/add', 'goods/add');
 Route::post('/goods/edit', 'goods/edit');
 Route::post('/goods/delete', 'goods/delete');
+Route::post('/goods/batchDelete', 'goods/batchDelete');
+Route::post('/goods/batchToggleStatus', 'goods/batchToggleStatus');
 Route::post('/goods/genBarcode', 'goods/genBarcode');
 Route::post('/goods/checkBarcode', 'goods/checkBarcode');
 Route::get('/goods/cateList', 'goods/cateList');
