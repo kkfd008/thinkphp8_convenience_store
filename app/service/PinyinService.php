@@ -41,10 +41,15 @@ class PinyinService
             return $char;
         }
 
-        $fchar = ord($char[0]);
-        $schar = isset($char[1]) ? ord($char[1]) : 0;
+        // 将 UTF-8 转换为 GB2312 编码以使用拼音区间映射
+        $gb = @iconv('UTF-8', 'GB2312//IGNORE', $char);
+        if ($gb === false || $gb === '' || strlen($gb) < 2) {
+            return $char;
+        }
 
-        // 使用 GB2312 编码计算拼音首字母
+        $fchar = ord($gb[0]);
+        $schar = ord($gb[1]);
+
         $code = ($fchar << 8) + $schar;
 
         // 拼音首字母区间映射 (GB2312)

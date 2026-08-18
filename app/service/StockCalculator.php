@@ -24,4 +24,29 @@ class StockCalculator
     {
         return $stock >= $quantity;
     }
+
+    public function isLowStock(int $stock, int $stockMin): bool
+    {
+        return $stockMin > 0 && $stock < $stockMin;
+    }
+
+    public function isHighStock(int $stock, int $stockMax): bool
+    {
+        return $stockMax > 0 && $stock > $stockMax;
+    }
+
+    public function isExpiring(int $expiryDate, int $daysThreshold): bool
+    {
+        return $expiryDate > 0 && $expiryDate <= time() + $daysThreshold * 86400;
+    }
+
+    public function calcStockValue(int $stock, float $purchasePrice): float
+    {
+        return $stock * $purchasePrice;
+    }
+
+    public function calcStockAdjustDiff(int $newStock, int $oldStock): int
+    {
+        return $newStock - $oldStock;
+    }
 }

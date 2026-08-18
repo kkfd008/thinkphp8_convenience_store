@@ -125,4 +125,46 @@ class OrderDisplayServiceTest extends TestCase
         $this->assertSame('-', $result[1]['buyer_name']);
         $this->assertSame('-', $result[1]['buyer_phone']);
     }
+
+    public function testFormatOrderWithMissingOperatorName(): void
+    {
+        $order = [
+            'id' => 4,
+            'order_no' => 'DD20260727004',
+            'total_amount' => 30.0,
+            'discount_amount' => 0.0,
+            'pay_amount' => 30.0,
+            'pay_type' => 1,
+            'member_name' => null,
+            'member_phone' => null,
+            'operator_id' => 4,
+            'create_time' => 1750000000,
+        ];
+
+        $result = $this->service->format($order);
+
+        $this->assertSame('-', $result['operator_name']);
+    }
+
+    public function testFormatOrderWithUnknownPayType(): void
+    {
+        $order = [
+            'id' => 5,
+            'order_no' => 'DD20260727005',
+            'total_amount' => 30.0,
+            'discount_amount' => 0.0,
+            'pay_amount' => 30.0,
+            'pay_type' => 99,
+            'member_name' => null,
+            'member_phone' => null,
+            'operator_id' => 5,
+            'operator_name' => '测试',
+            'create_time' => 1750000000,
+        ];
+
+        $result = $this->service->format($order);
+
+        // 未知支付类型应默认为现金
+        $this->assertSame('现金', $result['pay_type_text']);
+    }
 }
