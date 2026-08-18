@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS outbound_detail (
     total_amount DECIMAL(10,2) DEFAULT 0.00,
     create_time INTEGER DEFAULT 0
 );
--- 14. member_recharge（会员充值记录表）
+-- 15. member_recharge（会员充值记录表）
 CREATE TABLE IF NOT EXISTS member_recharge (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     member_id INTEGER DEFAULT 0,
@@ -189,7 +189,7 @@ CREATE TABLE IF NOT EXISTS member_recharge (
     create_time INTEGER DEFAULT 0
 );
 
--- 15. stock_check（盘点主表）
+-- 16. stock_check（盘点主表）
 CREATE TABLE IF NOT EXISTS stock_check (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     check_no VARCHAR(30) NOT NULL,
@@ -207,7 +207,7 @@ CREATE TABLE IF NOT EXISTS stock_check (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_check_no ON stock_check(check_no);
 
--- 16. stock_check_detail（盘点明细表）
+-- 17. stock_check_detail（盘点明细表）
 CREATE TABLE IF NOT EXISTS stock_check_detail (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     check_id INTEGER DEFAULT 0,
@@ -225,7 +225,7 @@ CREATE TABLE IF NOT EXISTS stock_check_detail (
 );
 CREATE INDEX IF NOT EXISTS idx_check_detail_id ON stock_check_detail(check_id);
 
--- 17. stock_check_template（盘点模板表）
+-- 18. stock_check_template（盘点模板表）
 CREATE TABLE IF NOT EXISTS stock_check_template (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(50) NOT NULL,
@@ -237,7 +237,7 @@ CREATE TABLE IF NOT EXISTS stock_check_template (
     create_time INTEGER DEFAULT 0
 );
 
--- 18. stock_flow（库存流水表）
+-- 19. stock_flow（库存流水表）
 CREATE TABLE IF NOT EXISTS stock_flow (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     barcode VARCHAR(50) NOT NULL,
@@ -299,9 +299,9 @@ INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (18, '会员充值',
 INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (18, '充值记录', 'Member/rechargeLog', '', 4);
 
 -- 更新超级管理员角色的权限规则（所有权限ID）
-UPDATE role SET rules = '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31' WHERE id = 1;
--- 店长：所有业务模块（不含权限管理 2-5）
-UPDATE role SET rules = '1,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31' WHERE id = 2;
+UPDATE role SET rules = '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,28,29,30,31,32,33' WHERE id = 1;
+-- 店长：所有模块（含权限管理 2-5）
+UPDATE role SET rules = '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,28,29,30,31,32,33' WHERE id = 2;
 -- 收银员：仅首页、收银台、订单管理
 UPDATE role SET rules = '1,16,17' WHERE id = 3;
 
