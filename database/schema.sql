@@ -142,6 +142,14 @@ CREATE TABLE IF NOT EXISTS member (
     create_time INTEGER DEFAULT 0
 );
 
+-- 12. goods_cate（商品分类表）
+CREATE TABLE IF NOT EXISTS goods_cate (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(50) NOT NULL DEFAULT '',
+    status TINYINT DEFAULT 1,
+    create_time INTEGER DEFAULT 0
+);
+
 -- 13. outbound（出库主表）
 CREATE TABLE IF NOT EXISTS outbound (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -170,6 +178,7 @@ CREATE TABLE IF NOT EXISTS outbound_detail (
     total_amount DECIMAL(10,2) DEFAULT 0.00,
     create_time INTEGER DEFAULT 0
 );
+-- 14. member_recharge（会员充值记录表）
 CREATE TABLE IF NOT EXISTS member_recharge (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     member_id INTEGER DEFAULT 0,
@@ -177,15 +186,6 @@ CREATE TABLE IF NOT EXISTS member_recharge (
     before_balance DECIMAL(10,2) DEFAULT 0.00,
     after_balance DECIMAL(10,2) DEFAULT 0.00,
     operator_id INTEGER DEFAULT 0,
-    create_time INTEGER DEFAULT 0
-);
-
--- 商品分类表
-DROP TABLE IF EXISTS goods_cate;
-CREATE TABLE goods_cate (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name VARCHAR(50) NOT NULL DEFAULT '',
-    status TINYINT DEFAULT 1,
     create_time INTEGER DEFAULT 0
 );
 

@@ -303,17 +303,16 @@ class StockCheck extends BaseController
     public function searchGoods()
     {
         $keyword = $this->request->get('keyword', '');
-        if ($keyword === '') {
-            return json(['code' => 0, 'data' => []]);
+        $query = Db::name('goods');
+        if ($keyword !== '') {
+            $query->where(function ($q) use ($keyword) {
+                $q->where('name', 'like', "%{$keyword}%")
+                  ->whereOr('barcode', 'like', "%{$keyword}%")
+                  ->whereOr('pinyin_code', 'like', "%{$keyword}%");
+            });
         }
 
-        $list = Db::name('goods')
-            ->where('name', 'like', "%{$keyword}%")
-            ->whereOr('barcode', 'like', "%{$keyword}%")
-            ->whereOr('pinyin_code', 'like', "%{$keyword}%")
-            ->limit(20)
-            ->select()
-            ->toArray();
+        $list = $query->limit($keyword === '' ? 500 : 20)->select()->toArray();
 
         return json(['code' => 0, 'data' => $list]);
     }
