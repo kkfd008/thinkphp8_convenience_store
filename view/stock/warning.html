@@ -105,9 +105,9 @@ window.generatePurchase = function(){
 
     // 弹出供货商选择
     var options = '';
-    {:foreach $suppliers as $s}
+    {foreach $suppliers as $s}
     options += '<option value="{$s.id}">{$s.name}</option>';
-    {:/foreach}
+    {/foreach}
     var html = '<div style="padding:20px;">\
         <div class="layui-form-item"><label class="layui-form-label">供货商</label>\
         <div class="layui-input-block"><select id="gen-supplier" class="layui-input">' + options + '</select></div></div>\

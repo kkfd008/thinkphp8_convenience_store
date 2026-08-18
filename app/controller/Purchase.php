@@ -181,10 +181,17 @@ class Purchase extends BaseController
     public function detail()
     {
         $id = intval($this->request->get('id', 0));
+        if ($id <= 0) {
+            return '参数错误';
+        }
         $purchase = Db::name('purchase')->alias('p')
             ->leftJoin('supplier s', 'p.supplier_id = s.id')
             ->field('p.*, s.name as supplier_name')
             ->where('p.id', $id)->find();
+
+        if (!$purchase) {
+            return '入库单不存在';
+        }
 
         $details = Db::name('purchase_detail')->where('purchase_id', $id)->select()->toArray();
 

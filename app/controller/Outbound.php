@@ -181,14 +181,19 @@ class Outbound extends BaseController
     public function detail()
     {
         $id = intval($this->request->get('id', 0));
+        if ($id <= 0) {
+            return '参数错误';
+        }
         $outbound = Db::name('outbound')->alias('o')
             ->leftJoin('supplier s', 'o.supplier_id = s.id')
             ->field('o.*, s.name as supplier_name')
             ->where('o.id', $id)->find();
 
-        if ($outbound) {
-            $outbound['type_text'] = $outbound['type'] == 1 ? '销售出库' : '退货出库';
+        if (!$outbound) {
+            return '出库单不存在';
         }
+
+        $outbound['type_text'] = $outbound['type'] == 1 ? '销售出库' : '退货出库';
 
         $details = Db::name('outbound_detail')->where('outbound_id', $id)->select()->toArray();
 

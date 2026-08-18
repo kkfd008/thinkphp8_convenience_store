@@ -76,10 +76,17 @@ class Order extends BaseController
     public function detail()
     {
         $id   = intval($this->request->get('id', 0));
+        if ($id <= 0) {
+            return '参数错误';
+        }
         $order = Db::name('order')->alias('o')
             ->leftJoin('member m', 'o.member_id = m.id')
             ->field('o.*, m.name as member_name, m.phone as member_phone')
             ->where('o.id', $id)->find();
+
+        if (!$order) {
+            return '订单不存在';
+        }
 
         $details = Db::name('order_detail')->alias('od')
             ->leftJoin('goods g', 'od.barcode = g.barcode')
