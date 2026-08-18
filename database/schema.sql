@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS goods (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(100) NOT NULL,
     barcode VARCHAR(50) NOT NULL,
+    pinyin_code VARCHAR(100) DEFAULT '',
     unit VARCHAR(20) DEFAULT '',
     box_spec INTEGER DEFAULT 0,
     purchase_price DECIMAL(10,2) DEFAULT 0.00,
@@ -51,10 +52,15 @@ CREATE TABLE IF NOT EXISTS goods (
     stock INTEGER DEFAULT 0,
     stock_min INTEGER DEFAULT NULL,
     stock_max INTEGER DEFAULT NULL,
+    expiry_date INTEGER DEFAULT NULL,
+    location VARCHAR(50) DEFAULT '',
     cate VARCHAR(50) DEFAULT '',
+    supplier_id INTEGER DEFAULT 0,
     create_time INTEGER DEFAULT 0
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_goods_barcode ON goods(barcode);
+CREATE INDEX IF NOT EXISTS idx_goods_expiry ON goods(expiry_date);
+CREATE INDEX IF NOT EXISTS idx_goods_location ON goods(location);
 
 -- 6. purchase（进货主表）
 CREATE TABLE IF NOT EXISTS purchase (
@@ -181,6 +187,54 @@ CREATE TABLE goods_cate (
     create_time INTEGER DEFAULT 0
 );
 
+-- 15. stock_check（盘点主表）
+CREATE TABLE IF NOT EXISTS stock_check (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    check_no VARCHAR(30) NOT NULL,
+    status TINYINT DEFAULT 0,
+    total_goods_num INTEGER DEFAULT 0,
+    profit_num INTEGER DEFAULT 0,
+    loss_num INTEGER DEFAULT 0,
+    profit_amount DECIMAL(10,2) DEFAULT 0.00,
+    loss_amount DECIMAL(10,2) DEFAULT 0.00,
+    operator_id INTEGER DEFAULT 0,
+    auditor_id INTEGER DEFAULT 0,
+    audit_time INTEGER DEFAULT NULL,
+    remark TEXT DEFAULT '',
+    create_time INTEGER DEFAULT 0
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_check_no ON stock_check(check_no);
+
+-- 16. stock_check_detail（盘点明细表）
+CREATE TABLE IF NOT EXISTS stock_check_detail (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    check_id INTEGER DEFAULT 0,
+    barcode VARCHAR(50) NOT NULL,
+    goods_name VARCHAR(100) NOT NULL,
+    unit VARCHAR(20) DEFAULT '',
+    book_stock INTEGER DEFAULT 0,
+    actual_stock INTEGER DEFAULT 0,
+    diff INTEGER DEFAULT 0,
+    purchase_price DECIMAL(10,2) DEFAULT 0.00,
+    diff_amount DECIMAL(10,2) DEFAULT 0.00,
+    reason VARCHAR(30) DEFAULT '',
+    remark VARCHAR(255) DEFAULT '',
+    create_time INTEGER DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_check_detail_id ON stock_check_detail(check_id);
+
+-- 17. stock_check_template（盘点模板表）
+CREATE TABLE IF NOT EXISTS stock_check_template (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(50) NOT NULL,
+    type VARCHAR(20) DEFAULT 'full',
+    cate VARCHAR(50) DEFAULT '',
+    supplier_id INTEGER DEFAULT 0,
+    location VARCHAR(50) DEFAULT '',
+    remark TEXT DEFAULT '',
+    create_time INTEGER DEFAULT 0
+);
+
 -- ========== 种子数据 ==========
 
 -- 角色数据
@@ -210,6 +264,11 @@ INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (23, '新建出库',
 INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (0, '库存管理', '', 'layui-icon-chart-screen', 6);
 INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (13, '库存总览', 'Stock/index', '', 1);
 INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (13, '库存预警', 'Stock/warning', '', 2);
+INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (0, '盘点管理', '', 'layui-icon-survey', 11);
+INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (25, '盘点列表', 'StockCheck/index', '', 1);
+INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (25, '新建盘点', 'StockCheck/add', '', 2);
+INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (25, '盘点模板', 'StockCheck/template', '', 3);
+INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (25, '盘点统计', 'StockCheck/statistics', '', 4);
 INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (0, '收银台', 'Cashier/index', 'layui-icon-rmb', 7);
 INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (0, '订单管理', 'Order/index', 'layui-icon-list', 8);
 INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (0, '会员管理', '', 'layui-icon-username', 9);
@@ -219,9 +278,9 @@ INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (18, '会员充值',
 INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (18, '充值记录', 'Member/rechargeLog', '', 4);
 
 -- 更新超级管理员角色的权限规则（所有权限ID）
-UPDATE role SET rules = '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25' WHERE id = 1;
+UPDATE role SET rules = '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29' WHERE id = 1;
 -- 店长：所有业务模块（不含权限管理 2-5）
-UPDATE role SET rules = '1,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25' WHERE id = 2;
+UPDATE role SET rules = '1,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29' WHERE id = 2;
 -- 收银员：仅首页、收银台、订单管理
 UPDATE role SET rules = '1,16,17' WHERE id = 3;
 

@@ -1,0 +1,241 @@
+{extend name="layout" /}
+{block name="content"}
+<div class="layui-card">
+    <div class="layui-card-header">新建盘点单</div>
+    <div class="layui-card-body">
+        <!-- 模板选择 -->
+        <div style="margin-bottom:10px;padding:10px;background:#f6f6f6;border-radius:4px;">
+            <div class="layui-inline"><strong>盘点模板：</strong></div>
+            <div class="layui-inline">
+                <select id="template-select" onchange="useTemplate()">
+                    <option value="0">-- 手动选择商品 --</option>
+                    {foreach $templates as $t}
+                    <option value="{$t.id}" {if $templateId==$t.id}selected{/if}>{$t.name}</option>
+                    {/foreach}
+                </select>
+            </div>
+            <div class="layui-inline" style="margin-left:20px;">
+                <a href="/stock_check/template" class="layui-btn layui-btn-xs layui-btn-primary">管理模板</a>
+            </div>
+        </div>
+
+        <form class="layui-form" lay-filter="checkForm">
+            <div class="layui-form-item">
+                <label class="layui-form-label">备注</label>
+                <div class="layui-input-block">
+                    <input type="text" name="remark" placeholder="盘点备注" class="layui-input" value="">
+                </div>
+            </div>
+        </form>
+
+        <div style="margin:10px 0;">
+            <div class="layui-inline">
+                <input type="text" id="search-goods" placeholder="条码/名称/拼音码搜索商品…" class="layui-input" style="width:300px;">
+            </div>
+            <div class="layui-inline">
+                <button class="layui-btn layui-btn-normal" onclick="searchGoods()"><i class="layui-icon layui-icon-search"></i> 搜索</button>
+            </div>
+            <div class="layui-inline">
+                <button class="layui-btn layui-btn-primary" onclick="batchLoadAll()"><i class="layui-icon layui-icon-list"></i> 加载全部商品</button>
+            </div>
+        </div>
+
+        <table class="layui-table" id="items-table">
+            <thead>
+                <tr>
+                    <th width="70">条码</th>
+                    <th width="140">商品名称</th>
+                    <th width="60">单位</th>
+                    <th width="80">账面库存</th>
+                    <th width="100">实盘库存</th>
+                    <th width="90">差异原因</th>
+                    <th width="60">箱规</th>
+                    <th width="70">进价</th>
+                    <th width="80">备注</th>
+                    <th width="50">操作</th>
+                </tr>
+            </thead>
+            <tbody id="items-body">
+                <tr id="empty-row"><td colspan="10" style="text-align:center;color:#999;">请搜索并添加商品</td></tr>
+            </tbody>
+        </table>
+
+        <div style="text-align:right;margin-top:15px;">
+            <button class="layui-btn" onclick="submitForm()"><i class="layui-icon layui-icon-ok"></i> 提交盘点</button>
+            <a href="/stock_check/index" class="layui-btn layui-btn-primary">取消</a>
+        </div>
+    </div>
+</div>
+
+<script type="text/html" id="itemTpl">
+    <tr>
+        <td><span class="item-barcode"></span></td>
+        <td><span class="item-name"></span></td>
+        <td><span class="item-unit"></span></td>
+        <td><span class="item-book-stock"></span></td>
+        <td><input type="number" class="layui-input item-actual" style="width:80px;height:32px;" value=""></td>
+        <td><select class="item-reason" style="height:32px;">
+            <option value="">--</option>
+            <option value="损耗">损耗</option>
+            <option value="过期">过期</option>
+            <option value="错漏记账">错漏记账</option>
+            <option value="盘点误差">盘点误差</option>
+            <option value="其他">其他</option>
+        </select></td>
+        <td><span class="item-box-spec"></span></td>
+        <td><span class="item-price"></span></td>
+        <td><input type="text" class="layui-input item-remark" style="width:70px;height:32px;" value=""></td>
+        <td><button class="layui-btn layui-btn-xs layui-btn-danger" onclick="removeItem(this)">删除</button></td>
+    </tr>
+</script>
+{/block}
+
+{block name="script"}
+<script>
+var items = {};
+
+// 预加载模板商品
+{foreach $preloadGoods as $g}
+items['{$g.barcode}'] = {:json_encode($g, JSON_UNESCAPED_UNICODE)};
+{/foreach}
+{if count($preloadGoods) > 0}
+$(function(){ renderItems(); });
+{/if}
+
+function useTemplate(){
+    var tid = $('#template-select').val();
+    if (tid == 0) { items = {}; renderItems(); return; }
+    location.href = '/stock_check/add?template_id=' + tid;
+}
+
+function searchGoods(){
+    var keyword = $('#search-goods').val().trim();
+    if (!keyword) { layer.msg('请输入搜索关键字', {icon:2}); return; }
+    $.get('/stock_check/searchGoods', {keyword: keyword}, function(res){
+        if (res.code !== 0 || !res.data || res.data.length === 0) {
+            layer.msg('未找到匹配商品', {icon:2});
+            return;
+        }
+        if (res.data.length === 1) {
+            addItem(res.data[0]);
+        } else {
+            var html = '<div style="padding:10px;">';
+            res.data.forEach(function(g){
+                html += '<div style="padding:6px;border-bottom:1px solid #eee;cursor:pointer;" onclick="addItemAndClose(' + JSON.stringify(g).replace(/"/g, '&quot;') + ')">';
+                html += '<strong>' + g.name + '</strong> | ' + g.barcode + ' | 库存：' + g.stock + ' | 进价：&yen;' + g.purchase_price;
+                html += '</div>';
+            });
+            html += '</div>';
+            layer.open({
+                type: 1, title: '选择商品 (' + res.data.length + '条)', area: ['500px', '350px'], content: html
+            });
+        }
+    });
+}
+
+function addItem(goods){
+    if (items[goods.barcode]) {
+        layer.msg('该商品已添加', {icon:2});
+        return;
+    }
+    items[goods.barcode] = goods;
+    renderItems();
+    layer.closeAll();
+}
+
+function addItemAndClose(goodsStr){
+    var goods = JSON.parse(goodsStr.replace(/&quot;/g, '"'));
+    addItem(goods);
+}
+
+function batchLoadAll(){
+    layer.confirm('将加载全部商品到盘点列表，确认继续？', {icon:3, title:'确认'}, function(index){
+        layer.close(index);
+        var loadIdx = layer.load(2);
+        $.get('/stock_check/searchGoods', {keyword: ''}, function(res){
+            layer.close(loadIdx);
+            if (res.code === 0 && res.data) {
+                res.data.forEach(function(g){ items[g.barcode] = g; });
+                renderItems();
+                layer.msg('已加载 ' + res.data.length + ' 件商品');
+            } else {
+                layer.msg('加载失败', {icon:2});
+            }
+        });
+    });
+}
+
+function removeItem(btn){
+    var barcode = $(btn).closest('tr').find('.item-barcode').text();
+    delete items[barcode];
+    renderItems();
+}
+
+function renderItems(){
+    var tbody = $('#items-body');
+    tbody.empty();
+    var keys = Object.keys(items);
+    if (keys.length === 0) {
+        tbody.html('<tr id="empty-row"><td colspan="10" style="text-align:center;color:#999;">请搜索并添加商品</td></tr>');
+        return;
+    }
+    keys.forEach(function(barcode){
+        var g = items[barcode];
+        var tr = $($('#itemTpl').html());
+        tr.find('.item-barcode').text(g.barcode);
+        tr.find('.item-name').text(g.name);
+        tr.find('.item-unit').text(g.unit || '-');
+        tr.find('.item-book-stock').text(g.stock);
+        tr.find('.item-actual').val(g.stock);
+        tr.find('.item-box-spec').text(g.box_spec || '-');
+        tr.find('.item-price').text('¥' + g.purchase_price);
+        tbody.append(tr);
+    });
+}
+
+function submitForm(){
+    var keys = Object.keys(items);
+    if (keys.length === 0) {
+        layer.msg('请添加盘点商品', {icon:2});
+        return;
+    }
+
+    var data = [];
+    $('#items-body tr').each(function(){
+        var barcode = $(this).find('.item-barcode').text();
+        if (!barcode) return;
+        var actual = parseInt($(this).find('.item-actual').val()) || 0;
+        var reason = $(this).find('.item-reason').val() || '';
+        var remark = $(this).find('.item-remark').val() || '';
+        data.push({
+            barcode: barcode,
+            actual_stock: actual,
+            reason: reason,
+            remark: remark
+        });
+    });
+
+    if (data.length === 0) {
+        layer.msg('无有效盘点数据', {icon:2});
+        return;
+    }
+
+    $.post('/stock_check/doAdd', {
+        items: JSON.stringify(data),
+        remark: $('[name=remark]').val() || ''
+    }, function(res){
+        if (res.code === 0) {
+            layer.msg(res.msg, {icon:1});
+            setTimeout(function(){ location.href = '/stock_check/index'; }, 1000);
+        } else {
+            layer.msg(res.msg, {icon:2});
+        }
+    });
+}
+
+// 回车搜索
+$('#search-goods').on('keydown', function(e){
+    if (e.keyCode === 13) searchGoods();
+});
+</script>
+{/block}

@@ -1,0 +1,109 @@
+{extend name="layout" /}
+{block name="content"}
+<div class="layui-card">
+    <div class="layui-card-header">盘点统计报表</div>
+    <div class="layui-card-body">
+        <!-- 总体统计卡片 -->
+        <div style="display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap;">
+            <div class="stat-card" style="flex:1;min-width:140px;background:#f0f9ff;padding:15px;border-radius:6px;text-align:center;">
+                <div style="font-size:24px;color:#1e9fff;font-weight:bold;">{$overall.total_checks ?? 0}</div>
+                <div style="color:#666;margin-top:5px;">已审核盘点单</div>
+            </div>
+            <div class="stat-card" style="flex:1;min-width:140px;background:#f0fdf4;padding:15px;border-radius:6px;text-align:center;">
+                <div style="font-size:24px;color:#16a34a;font-weight:bold;">{$overall.total_goods ?? 0}</div>
+                <div style="color:#666;margin-top:5px;">已盘点商品</div>
+            </div>
+            <div class="stat-card" style="flex:1;min-width:140px;background:#fefce8;padding:15px;border-radius:6px;text-align:center;">
+                <div style="font-size:24px;color:#ca8a04;font-weight:bold;">{$overall.total_profit ?? 0}</div>
+                <div style="color:#666;margin-top:5px;">盘盈商品数</div>
+            </div>
+            <div class="stat-card" style="flex:1;min-width:140px;background:#fef2f2;padding:15px;border-radius:6px;text-align:center;">
+                <div style="font-size:24px;color:#dc2626;font-weight:bold;">{$overall.total_loss ?? 0}</div>
+                <div style="color:#666;margin-top:5px;">盘亏商品数</div>
+            </div>
+            <div class="stat-card" style="flex:1;min-width:140px;background:#f0f9ff;padding:15px;border-radius:6px;text-align:center;">
+                <div style="font-size:24px;color:#1e9fff;font-weight:bold;">&yen;{$overall.total_profit_amount ?? 0}</div>
+                <div style="color:#666;margin-top:5px;">盘盈金额</div>
+            </div>
+            <div class="stat-card" style="flex:1;min-width:140px;background:#fef2f2;padding:15px;border-radius:6px;text-align:center;">
+                <div style="font-size:24px;color:#dc2626;font-weight:bold;">&yen;{$overall.total_loss_amount ?? 0}</div>
+                <div style="color:#666;margin-top:5px;">盘亏金额</div>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:15px;flex-wrap:wrap;">
+            <!-- 月度统计 -->
+            <div style="flex:1;min-width:400px;">
+                <div class="layui-card">
+                    <div class="layui-card-header">月度盘点统计</div>
+                    <div class="layui-card-body">
+                        <table class="layui-table" style="margin:0;">
+                            <thead>
+                                <tr>
+                                    <th>月份</th>
+                                    <th>盘点次数</th>
+                                    <th>盘点商品数</th>
+                                    <th>盘盈</th>
+                                    <th>盘亏</th>
+                                    <th>盘盈金额</th>
+                                    <th>盘亏金额</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {if count($monthlyStats) > 0}
+                                {foreach $monthlyStats as $m}
+                                <tr>
+                                    <td>{$m['month']}</td>
+                                    <td>{$m['check_count']}</td>
+                                    <td>{$m['total_goods']}</td>
+                                    <td style="color:#009688;">{$m['total_profit']}</td>
+                                    <td style="color:#FF5722;">{$m['total_loss']}</td>
+                                    <td style="color:#009688;">&yen;{$m['total_profit_amount']}</td>
+                                    <td style="color:#FF5722;">&yen;{$m['total_loss_amount']}</td>
+                                </tr>
+                                {/foreach}
+                                {else}
+                                <tr><td colspan="7" style="text-align:center;color:#999;">暂无盘点数据</td></tr>
+                                {/if}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 差异原因统计 -->
+            <div style="flex:1;min-width:300px;">
+                <div class="layui-card">
+                    <div class="layui-card-header">差异原因分布</div>
+                    <div class="layui-card-body">
+                        <table class="layui-table" style="margin:0;">
+                            <thead>
+                                <tr>
+                                    <th>原因</th>
+                                    <th>次数</th>
+                                    <th>差异数量</th>
+                                    <th>差异金额</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {if count($reasonStats) > 0}
+                                {foreach $reasonStats as $r}
+                                <tr>
+                                    <td>{$r['reason']}</td>
+                                    <td>{$r['cnt']}</td>
+                                    <td>{$r['total_diff']}</td>
+                                    <td>&yen;{$r['total_amount']}</td>
+                                </tr>
+                                {/foreach}
+                                {else}
+                                <tr><td colspan="4" style="text-align:center;color:#999;">暂无数据</td></tr>
+                                {/if}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{/block}

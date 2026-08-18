@@ -1,0 +1,106 @@
+{extend name="layout" /}
+{block name="content"}
+<div class="search-form">
+    <div class="layui-inline">
+        <div class="layui-btn-group">
+            <a href="/stock_check/index?status=" class="layui-btn {if $status==''}layui-btn-normal{else}layui-btn-primary{/if}">全部</a>
+            <a href="/stock_check/index?status=0" class="layui-btn {if $status==='0'}layui-btn-normal{else}layui-btn-primary{/if}">待审核</a>
+            <a href="/stock_check/index?status=2" class="layui-btn {if $status==='2'}layui-btn-normal{else}layui-btn-primary{/if}">已审核</a>
+            <a href="/stock_check/index?status=3" class="layui-btn {if $status==='3'}layui-btn-normal{else}layui-btn-primary{/if}">已作废</a>
+        </div>
+    </div>
+    <div class="layui-inline layui-right">
+        <a href="/stock_check/add" class="layui-btn layui-btn-normal"><i class="layui-icon layui-icon-add-1"></i> 新建盘点</a>
+    </div>
+</div>
+<table id="check-table" lay-filter="checkTable"></table>
+
+<script type="text/html" id="toolbar">
+    <button class="layui-btn layui-btn-xs" lay-event="detail">查看明细</button>
+    {if $status !== '2'}<button class="layui-btn layui-btn-xs layui-btn-normal" lay-event="audit">审核</button>{/if}
+    {if $status !== '2' && $status !== '3'}<button class="layui-btn layui-btn-xs layui-btn-danger" lay-event="cancel">作废</button>{/if}
+    <button class="layui-btn layui-btn-xs layui-btn-primary" lay-event="export">导出</button>
+</script>
+{/block}
+
+{block name="script"}
+<script>
+layui.use(['table'], function(){
+    var table = layui.table;
+    table.render({
+        elem: '#check-table',
+        url: '/stock_check/list',
+        where: { status: '{$status|default=""}' },
+        cols: [[
+            {field: 'check_no', title: '盘点单号', width: 170},
+            {field: 'status_text', title: '状态', width: 90},
+            {field: 'total_goods_num', title: '盘点商品数', width: 110},
+            {field: 'profit_num', title: '盘盈数', width: 80},
+            {field: 'loss_num', title: '盘亏数', width: 80},
+            {field: 'profit_amount', title: '盘盈金额', width: 100, templet: function(d){
+                return d.profit_amount > 0 ? '<span style="color:#009688;">&yen;' + d.profit_amount + '</span>' : '&yen;0';
+            }},
+            {field: 'loss_amount', title: '盘亏金额', width: 100, templet: function(d){
+                return d.loss_amount > 0 ? '<span style="color:#FF5722;">&yen;' + d.loss_amount + '</span>' : '&yen;0';
+            }},
+            {field: 'operator_name', title: '盘点人', width: 90},
+            {field: 'auditor_name', title: '审核人', width: 90},
+            {field: 'create_time', title: '盘点时间', width: 170},
+            {title: '操作', toolbar: '#toolbar', width: 160}
+        ]],
+        page: {limits: [10, 20, 50, 100]}
+    });
+
+    table.on('tool(checkTable)', function(obj){
+        var data = obj.data;
+        if (obj.event === 'detail') {
+            var loading = layer.load();
+            $.get('/stock_check/detail', {id: data.id}, function(res){
+                layer.close(loading);
+                if (res.code !== 0) { layer.msg(res.msg, {icon:2}); return; }
+                var d = res.data;
+                var html = '<div style="padding:12px;max-height:450px;overflow-y:auto;">';
+                html += '<div style="margin-bottom:10px;font-size:14px;">';
+                html += '<strong>盘点单号：</strong>' + d.check.check_no + ' | ';
+                html += '<strong>状态：</strong>' + d.check.status_text + ' | ';
+                html += '<strong>盘点人：</strong>' + (d.check.operator_name || '-') + ' | ';
+                html += '<strong>审核人：</strong>' + (d.check.auditor_name || '-') + '<br>';
+                html += '<strong>盘盈：</strong><span style="color:#009688;">' + d.check.profit_num + '件 / &yen;' + d.check.profit_amount + '</span> | ';
+                html += '<strong>盘亏：</strong><span style="color:#FF5722;">' + d.check.loss_num + '件 / &yen;' + d.check.loss_amount + '</span>';
+                html += '</div>';
+                html += '<table class="layui-table" style="margin:0;"><thead><tr>';
+                html += '<th>条码</th><th>商品名称</th><th>单位</th><th>账面库存</th><th>实盘库存</th><th>差异</th><th>差异原因</th><th>进价</th><th>差异金额</th></tr></thead><tbody>';
+                d.details.forEach(function(item){
+                    var diffCls = item.diff > 0 ? 'color:#009688;' : (item.diff < 0 ? 'color:#FF5722;' : '');
+                    html += '<tr><td>' + item.barcode + '</td><td>' + item.goods_name + '</td><td>' + (item.unit || '-') + '</td>';
+                    html += '<td>' + item.book_stock + '</td><td>' + item.actual_stock + '</td>';
+                    html += '<td style="' + diffCls + 'font-weight:bold;">' + (item.diff > 0 ? '+' + item.diff : item.diff) + '</td>';
+                    html += '<td>' + (item.reason || '-') + '</td>';
+                    html += '<td>&yen;' + item.purchase_price + '</td><td style="' + diffCls + '">&yen;' + item.diff_amount + '</td></tr>';
+                });
+                html += '</tbody></table></div>';
+                layer.open({ type: 1, title: '盘点明细', area: ['850px', '500px'], content: html });
+            });
+        } else if (obj.event === 'audit') {
+            layer.confirm('确认审核该盘点单？审核后将自动更新库存。', {icon:3, title:'审核确认'}, function(index){
+                $.post('/stock_check/audit', {id: data.id}, function(res){
+                    if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                    else layer.msg(res.msg, {icon:2});
+                });
+                layer.close(index);
+            });
+        } else if (obj.event === 'cancel') {
+            layer.confirm('确认作废该盘点单？', {icon:3, title:'作废确认'}, function(index){
+                $.post('/stock_check/cancel', {id: data.id}, function(res){
+                    if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                    else layer.msg(res.msg, {icon:2});
+                });
+                layer.close(index);
+            });
+        } else if (obj.event === 'export') {
+            location.href = '/stock_check/export?id=' + data.id;
+        }
+    });
+});
+</script>
+{/block}

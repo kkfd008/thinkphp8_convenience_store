@@ -3,13 +3,27 @@
 <div class="search-form">
     <div class="layui-inline">
         <div class="layui-btn-group">
-            <a href="/stock/warning?type=all" class="layui-btn {if $type=='all'||$type==''}layui-btn-normal{else}layui-btn-primary{/if}">全部</a>
-            <a href="/stock/warning?type=low" class="layui-btn {if $type=='low'}layui-btn-normal{else}layui-btn-primary{/if}">低于最小库存</a>
-            <a href="/stock/warning?type=high" class="layui-btn {if $type=='high'}layui-btn-normal{else}layui-btn-primary{/if}">高于最大库存</a>
+            <a href="/stock/warning?type=all&cate={$cate|default=''}&supplier_id={$supplierId|default=0}" class="layui-btn {if $type=='all'||$type==''}layui-btn-normal{else}layui-btn-primary{/if}">全部</a>
+            <a href="/stock/warning?type=low&cate={$cate|default=''}&supplier_id={$supplierId|default=0}" class="layui-btn {if $type=='low'}layui-btn-normal{else}layui-btn-primary{/if}">低于最小库存</a>
+            <a href="/stock/warning?type=high&cate={$cate|default=''}&supplier_id={$supplierId|default=0}" class="layui-btn {if $type=='high'}layui-btn-normal{else}layui-btn-primary{/if}">高于最大库存</a>
+            <a href="/stock/warning?type=expiry&cate={$cate|default=''}&supplier_id={$supplierId|default=0}" class="layui-btn {if $type=='expiry'}layui-btn-normal{else}layui-btn-primary{/if}">临期预警</a>
         </div>
     </div>
+    <div class="layui-inline">
+        <select id="search-cate" onchange="doFilter()">
+            <option value="">全部分类</option>
+            {foreach $cateList as $c}<option value="{$c}" {if $cate===$c}selected{/if}>{$c}</option>{/foreach}
+        </select>
+    </div>
+    <div class="layui-inline">
+        <select id="search-supplier" onchange="doFilter()">
+            <option value="0">全部供货商</option>
+            {foreach $suppliers as $s}<option value="{$s.id}" {if $supplierId===$s.id}selected{/if}>{$s.name}</option>{/foreach}
+        </select>
+    </div>
     <div class="layui-inline layui-right">
-        <button class="layui-btn layui-btn-primary" onclick="exportWarning()"><i class="layui-icon layui-icon-export"></i> 导出</button>
+        <button class="layui-btn layui-btn-sm layui-btn-warm" onclick="generatePurchase()"><i class="layui-icon layui-icon-add-circle"></i> 生成采购单</button>
+        <button class="layui-btn layui-btn-primary layui-btn-sm" onclick="exportWarning()"><i class="layui-icon layui-icon-export"></i> 导出</button>
     </div>
 </div>
 <table id="warning-table" lay-filter="warningTable"></table>
@@ -23,25 +37,39 @@
 <script>
 var warningList = {:json_encode($list, JSON_UNESCAPED_UNICODE)};
 
-layui.use(['table'], function(){
+layui.use(['table', 'form'], function(){
     var table = layui.table;
+    layui.form.render('select');
     table.render({
         elem: '#warning-table',
         data: warningList,
         cols: [[
+            {type: 'checkbox'},
             {field: 'id', title: 'ID', width: 60},
             {field: 'name', title: '名称', width: 140},
             {field: 'barcode', title: '条码', width: 120},
             {field: 'cate', title: '分类', width: 80},
+            {field: 'supplier_name', title: '供货商', width: 100},
             {field: 'stock', title: '当前库存', width: 90},
             {field: 'stock_min', title: '库存下限', width: 90},
             {field: 'stock_max', title: '库存上限', width: 90},
+            {field: 'expiry_date', title: '到期日期', width: 100, templet: function(d){
+                return d.expiry_date ? new Date(d.expiry_date * 1000).toLocaleDateString() : '-';
+            }},
+            {field: 'location', title: '库位', width: 80},
             {title: '操作', toolbar: '#toolbar', width: 80}
         ]],
         page: false,
         done: function(res){
             res.data.forEach(function(item, i){
-                $('.layui-table-body tbody tr').eq(i).addClass('row-warning');
+                var $tr = $('.layui-table-body tbody tr').eq(i);
+                if (item.expiry_date && item.expiry_date < Math.floor(Date.now()/1000) + 30*86400) {
+                    $tr.addClass('row-expiry');
+                } else if (item.stock_min && item.stock < item.stock_min) {
+                    $tr.addClass('row-stock-low');
+                } else if (item.stock_max && item.stock > item.stock_max) {
+                    $tr.addClass('row-stock-high');
+                }
             });
         }
     });
@@ -55,7 +83,53 @@ layui.use(['table'], function(){
 
 window.exportWarning = function(){
     var type = new URLSearchParams(location.search).get('type') || 'all';
-    location.href = '/stock/warningExport?type=' + type;
+    var cate = '{$cate|default=""}';
+    var sid = '{$supplierId|default=0}';
+    location.href = '/stock/warningExport?type=' + type + '&cate=' + cate + '&supplier_id=' + sid;
+};
+
+window.doFilter = function(){
+    var type = new URLSearchParams(location.search).get('type') || 'all';
+    var cate = $('#search-cate').val();
+    var sid = $('#search-supplier').val();
+    location.href = '/stock/warning?type=' + type + '&cate=' + cate + '&supplier_id=' + sid;
+};
+
+window.generatePurchase = function(){
+    var checkStatus = layui.table.checkStatus('warning-table');
+    if (checkStatus.data.length === 0) {
+        layer.msg('请先勾选需要补货的商品', {icon:2});
+        return;
+    }
+    var ids = checkStatus.data.map(function(d){ return d.id; }).join(',');
+
+    // 弹出供货商选择
+    var options = '';
+    {:foreach $suppliers as $s}
+    options += '<option value="{$s.id}">{$s.name}</option>';
+    {:/foreach}
+    var html = '<div style="padding:20px;">\
+        <div class="layui-form-item"><label class="layui-form-label">供货商</label>\
+        <div class="layui-input-block"><select id="gen-supplier" class="layui-input">' + options + '</select></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">已选商品</label>\
+        <div class="layui-input-block" style="line-height:36px;color:#009688;">' + checkStatus.data.length + ' 件</div></div>\
+    </div>';
+    layer.open({
+        type: 1, title: '生成采购单', area: ['400px', '250px'], content: html,
+        btn: ['确认生成', '取消'],
+        yes: function(index, layero){
+            var supplierId = $(layero).find('#gen-supplier').val();
+            $.post('/stock/generatePurchase', {ids: ids, supplier_id: supplierId}, function(res){
+                if (res.code === 0) {
+                    layer.msg(res.msg, {icon:1});
+                    setTimeout(function(){ location.href = '/purchase/index'; }, 1000);
+                } else {
+                    layer.msg(res.msg, {icon:2});
+                }
+            });
+            layer.close(index);
+        }
+    });
 };
 
 window.openThresholdEdit = function(data){

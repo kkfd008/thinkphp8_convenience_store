@@ -1,0 +1,120 @@
+{extend name="layout" /}
+{block name="content"}
+<div class="layui-card">
+    <div class="layui-card-header">盘点模板管理</div>
+    <div class="layui-card-body">
+        <div style="margin-bottom:12px;">
+            <button class="layui-btn layui-btn-sm" onclick="openAddTemplate()"><i class="layui-icon layui-icon-add-1"></i> 新建模板</button>
+        </div>
+        <table id="template-table" lay-filter="templateTable"></table>
+    </div>
+</div>
+{/block}
+
+{block name="script"}
+<script>
+layui.use(['table'], function(){
+    var table = layui.table;
+    var templates = {:json_encode($templates, JSON_UNESCAPED_UNICODE)};
+
+    table.render({
+        elem: '#template-table',
+        data: templates,
+        cols: [[
+            {field: 'id', title: 'ID', width: 60},
+            {field: 'name', title: '模板名称', width: 150},
+            {field: 'type', title: '类型', width: 90, templet: function(d){
+                return d.type === 'full' ? '全盘' : (d.type === 'cate' ? '按分类' : (d.type === 'supplier' ? '按供货商' : '按库位'));
+            }},
+            {field: 'cate', title: '分类', width: 80, templet: function(d){ return d.cate || '-'; }},
+            {field: 'supplier_id', title: '供货商', width: 120, templet: function(d){
+                return d.supplier_id > 0 ? '已指定' : '-';
+            }},
+            {field: 'location', title: '库位', width: 80, templet: function(d){ return d.location || '-'; }},
+            {field: 'remark', title: '备注', width: 150},
+            {title: '操作', toolbar: '#tplToolbar', width: 150}
+        ]],
+        page: false
+    });
+
+    table.on('tool(templateTable)', function(obj){
+        if (obj.event === 'use') {
+            location.href = '/stock_check/add?template_id=' + obj.data.id;
+        } else if (obj.event === 'delete') {
+            layer.confirm('确认删除该模板？', {icon:3, title:'确认'}, function(index){
+                $.post('/stock_check/deleteTemplate', {id: obj.data.id}, function(res){
+                    if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                    else layer.msg(res.msg, {icon:2});
+                });
+                layer.close(index);
+            });
+        }
+    });
+});
+
+window.openAddTemplate = function(){
+    var cateOptions = '';
+    {foreach $cateList as $c}
+    cateOptions += '<option value="{$c}">{$c}</option>';
+    {/foreach}
+    var supplierOptions = '';
+    {foreach $suppliers as $s}
+    supplierOptions += '<option value="{$s.id}">{$s.name}</option>';
+    {/foreach}
+    var locOptions = '';
+    {foreach $locationList as $l}
+    locOptions += '<option value="{$l}">{$l}</option>';
+    {/foreach}
+
+    var html = '<div style="padding:20px;">\
+        <div class="layui-form-item"><label class="layui-form-label">模板名称</label>\
+        <div class="layui-input-block"><input type="text" name="tpl-name" class="layui-input" placeholder="如：全店盘点、饮料盘点"></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">模板类型</label>\
+        <div class="layui-input-block"><select id="tpl-type" class="layui-input"><option value="full">全盘</option><option value="cate">按分类</option><option value="supplier">按供货商</option><option value="location">按库位</option></select></div></div>\
+        <div class="layui-form-item" id="tpl-cate-row" style="display:none;"><label class="layui-form-label">分类</label>\
+        <div class="layui-input-block"><select id="tpl-cate" class="layui-input">' + cateOptions + '</select></div></div>\
+        <div class="layui-form-item" id="tpl-supplier-row" style="display:none;"><label class="layui-form-label">供货商</label>\
+        <div class="layui-input-block"><select id="tpl-supplier" class="layui-input">' + supplierOptions + '</select></div></div>\
+        <div class="layui-form-item" id="tpl-location-row" style="display:none;"><label class="layui-form-label">库位</label>\
+        <div class="layui-input-block"><select id="tpl-location" class="layui-input">' + locOptions + '</select></div></div>\
+        <div class="layui-form-item"><label class="layui-form-label">备注</label>\
+        <div class="layui-input-block"><input type="text" name="tpl-remark" class="layui-input"></div></div>\
+    </div>';
+
+    layer.open({
+        type: 1, title: '新建盘点模板', area: ['450px', '420px'], content: html,
+        btn: ['保存', '取消'],
+        yes: function(index, layero){
+            var name = $(layero).find('[name=tpl-name]').val().trim();
+            if (!name) { layer.msg('请输入模板名称', {icon:2}); return; }
+            var type = $(layero).find('#tpl-type').val();
+            $.post('/stock_check/saveTemplate', {
+                name: name,
+                type: type,
+                cate: $(layero).find('#tpl-cate').val() || '',
+                supplier_id: $(layero).find('#tpl-supplier').val() || 0,
+                location: $(layero).find('#tpl-location').val() || '',
+                remark: $(layero).find('[name=tpl-remark]').val() || ''
+            }, function(res){
+                if (res.code === 0) { layer.msg(res.msg, {icon:1}); setTimeout(function(){ location.reload(); }, 500); }
+                else layer.msg(res.msg, {icon:2});
+            });
+            layer.close(index);
+        }
+    });
+
+    // 类型切换显示对应筛选
+    $(document).on('change', '#tpl-type', function(){
+        var v = $(this).val();
+        $('#tpl-cate-row').toggle(v === 'cate');
+        $('#tpl-supplier-row').toggle(v === 'supplier');
+        $('#tpl-location-row').toggle(v === 'location');
+    });
+};
+</script>
+
+<script type="text/html" id="tplToolbar">
+    <button class="layui-btn layui-btn-xs layui-btn-normal" lay-event="use">使用</button>
+    <button class="layui-btn layui-btn-xs layui-btn-danger" lay-event="delete">删除</button>
+</script>
+{/block}

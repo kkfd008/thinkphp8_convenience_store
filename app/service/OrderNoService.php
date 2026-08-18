@@ -42,4 +42,19 @@ class OrderNoService
         }
         return intval(substr($lastNo, -3)) + 1;
     }
+
+    /**
+     * 根据前缀获取下一个序列号
+     */
+    public function getNextSequenceForPrefix(?string $lastNo, string $prefix): int
+    {
+        if (empty($lastNo)) {
+            return 1;
+        }
+        $len = strlen($prefix);
+        if (strlen($lastNo) < $len + 10) {
+            return 1;
+        }
+        return intval(substr($lastNo, $len + 8, 3)) + 1;
+    }
 }

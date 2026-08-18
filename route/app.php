@@ -74,6 +74,21 @@ Route::post('/stock/updateThreshold', 'stock/updateThreshold');
 Route::get('/stock/warning', 'stock/warning');
 Route::get('/stock/warningExport', 'stock/warningExport');
 Route::get('/stock/export', 'stock/export');
+Route::post('/stock/generatePurchase', 'stock/generatePurchase');
+
+Route::get('/stock_check/index', 'stockCheck/index');
+Route::get('/stock_check/list', 'stockCheck/list');
+Route::get('/stock_check/add', 'stockCheck/add');
+Route::post('/stock_check/doAdd', 'stockCheck/doAdd');
+Route::get('/stock_check/detail', 'stockCheck/detail');
+Route::post('/stock_check/audit', 'stockCheck/audit');
+Route::post('/stock_check/cancel', 'stockCheck/cancel');
+Route::get('/stock_check/searchGoods', 'stockCheck/searchGoods');
+Route::get('/stock_check/export', 'stockCheck/export');
+Route::get('/stock_check/template', 'stockCheck/template');
+Route::post('/stock_check/saveTemplate', 'stockCheck/saveTemplate');
+Route::post('/stock_check/deleteTemplate', 'stockCheck/deleteTemplate');
+Route::get('/stock_check/statistics', 'stockCheck/statistics');
 
 Route::get('/cashier/index', 'cashier/index');
 Route::get('/cashier/searchGoods', 'cashier/searchGoods');
