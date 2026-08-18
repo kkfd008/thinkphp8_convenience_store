@@ -1,0 +1,50 @@
+{extend name="layout" /}
+{block name="content"}
+<div class="layui-card">
+    <div class="layui-card-header">
+        <button class="layui-btn layui-btn-sm layui-btn-primary" onclick="history.back()"><i class="layui-icon layui-icon-return"></i> 返回</button>
+    </div>
+    <div class="layui-card-body">
+        <table class="layui-table">
+            <tr><td width="120">出库单号</td><td>{$outbound.outbound_no}</td></tr>
+            <tr><td>类型</td><td>{$outbound.type_text}</td></tr>
+            {if $outbound.supplier_name}
+            <tr><td>供货商</td><td>{$outbound.supplier_name}</td></tr>
+            {/if}
+            <tr><td>总金额</td><td>{$outbound.total_amount}</td></tr>
+            <tr><td>总数量</td><td>{$outbound.total_goods_num}</td></tr>
+            <tr><td>备注</td><td>{$outbound.remark|default='-'}</td></tr>
+            <tr><td>创建时间</td><td>{:date('Y-m-d H:i:s', $outbound.create_time)}</td></tr>
+        </table>
+
+        <hr>
+        <h4>出库明细</h4>
+        <table class="layui-table">
+            <thead>
+                <tr>
+                    <th>条码</th>
+                    <th>商品名称</th>
+                    <th>单位</th>
+                    <th>数量</th>
+                    <th>进货价</th>
+                    <th>零售价</th>
+                    <th>金额</th>
+                </tr>
+            </thead>
+            <tbody>
+                {foreach $details as $d}
+                <tr>
+                    <td>{$d.barcode}</td>
+                    <td>{$d.goods_name}</td>
+                    <td>{$d.unit}</td>
+                    <td>{$d.quantity}</td>
+                    <td>{$d.purchase_price}</td>
+                    <td>{$d.retail_price}</td>
+                    <td>{$d.total_amount}</td>
+                </tr>
+                {/foreach}
+            </tbody>
+        </table>
+    </div>
+</div>
+{/block}

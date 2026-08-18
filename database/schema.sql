@@ -134,7 +134,34 @@ CREATE TABLE IF NOT EXISTS member (
     create_time INTEGER DEFAULT 0
 );
 
--- 12. member_recharge（会员充值记录表）
+-- 13. outbound（出库主表）
+CREATE TABLE IF NOT EXISTS outbound (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    outbound_no VARCHAR(30) NOT NULL,
+    type TINYINT DEFAULT 1,
+    supplier_id INTEGER DEFAULT 0,
+    order_id INTEGER DEFAULT 0,
+    total_amount DECIMAL(10,2) DEFAULT 0.00,
+    total_goods_num INTEGER DEFAULT 0,
+    operator_id INTEGER DEFAULT 0,
+    remark TEXT DEFAULT '',
+    create_time INTEGER DEFAULT 0
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_outbound_no ON outbound(outbound_no);
+
+-- 14. outbound_detail（出库明细表）
+CREATE TABLE IF NOT EXISTS outbound_detail (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    outbound_id INTEGER DEFAULT 0,
+    barcode VARCHAR(50) NOT NULL,
+    goods_name VARCHAR(100) NOT NULL,
+    unit VARCHAR(20) DEFAULT '',
+    quantity INTEGER DEFAULT 0,
+    purchase_price DECIMAL(10,2) DEFAULT 0.00,
+    retail_price DECIMAL(10,2) DEFAULT 0.00,
+    total_amount DECIMAL(10,2) DEFAULT 0.00,
+    create_time INTEGER DEFAULT 0
+);
 CREATE TABLE IF NOT EXISTS member_recharge (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     member_id INTEGER DEFAULT 0,
@@ -174,9 +201,12 @@ INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (0, '供货商管理
 INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (0, '商品管理', '', 'layui-icon-component', 4);
 INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (7, '商品列表', 'Goods/index', '', 1);
 INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (7, '商品分类', 'Goods/cateList', '', 2);
-INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (0, '进货管理', '', 'layui-icon-template-1', 5);
-INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (10, '进货列表', 'Purchase/index', '', 1);
-INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (10, '新建进货', 'Purchase/add', '', 2);
+INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (0, '入库管理', '', 'layui-icon-template-1', 5);
+INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (10, '入库列表', 'Purchase/index', '', 1);
+INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (10, '新建入库', 'Purchase/add', '', 2);
+INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (0, '出库管理', '', 'layui-icon-logout', 10);
+INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (23, '出库列表', 'Outbound/index', '', 1);
+INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (23, '新建出库', 'Outbound/add', '', 2);
 INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (0, '库存管理', '', 'layui-icon-chart-screen', 6);
 INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (13, '库存总览', 'Stock/index', '', 1);
 INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (13, '库存预警', 'Stock/warning', '', 2);
@@ -189,9 +219,9 @@ INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (18, '会员充值',
 INSERT INTO auth_rule (pid, title, name, icon, sort) VALUES (18, '充值记录', 'Member/rechargeLog', '', 4);
 
 -- 更新超级管理员角色的权限规则（所有权限ID）
-UPDATE role SET rules = '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22' WHERE id = 1;
+UPDATE role SET rules = '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25' WHERE id = 1;
 -- 店长：所有业务模块（不含权限管理 2-5）
-UPDATE role SET rules = '1,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22' WHERE id = 2;
+UPDATE role SET rules = '1,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25' WHERE id = 2;
 -- 收银员：仅首页、收银台、订单管理
 UPDATE role SET rules = '1,16,17' WHERE id = 3;
 

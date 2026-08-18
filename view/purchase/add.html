@@ -36,7 +36,7 @@
         <div class="layui-input-block"><textarea id="remark" class="layui-textarea" style="min-height:60px;"></textarea></div>
     </div>
     <div style="text-align:right;font-size:16px;color:#FF5722;margin-bottom:10px;">总数量：<span id="total-num">0</span>&nbsp;&nbsp;总金额：<span id="total-amount">0.00</span></div>
-    <button class="layui-btn" onclick="doSubmit()" style="background-color:#5FB878;">提 交 进 货 单</button>
+    <button class="layui-btn" onclick="doSubmit()" style="background-color:#5FB878;">提 交 入 库 单</button>
 </div>
 {/block}
 
@@ -144,7 +144,7 @@ layui.use(['table', 'form'], function(){
 function doSubmit(){
     var supplierId = $('#supplier-select').val();
     if (!supplierId) { layer.msg('请选择供货商'); return; }
-    if (cartItems.length === 0) { layer.msg('请添加进货明细'); return; }
+    if (cartItems.length === 0) { layer.msg('请添加入库明细'); return; }
 
     var loading = layer.load();
     $.post('/purchase/doAdd', {supplier_id: supplierId, items: JSON.stringify(cartItems), remark: $('#remark').val()}, function(res){

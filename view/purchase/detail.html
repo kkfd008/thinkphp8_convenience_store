@@ -1,19 +1,19 @@
 {extend name="layout" /}
 {block name="content"}
 <div class="layui-card">
-    <div class="layui-card-header">进货单信息</div>
+    <div class="layui-card-header">入库单信息</div>
     <div class="layui-card-body">
         <table class="layui-table">
-            <tr><td width="100">进货单号</td><td>{$purchase.purchase_no}</td><td width="100">供货商</td><td>{$purchase.supplier_name|default='-'}</td></tr>
+            <tr><td width="100">入库单号</td><td>{$purchase.purchase_no}</td><td width="100">供货商</td><td>{$purchase.supplier_name|default='-'}</td></tr>
             <tr><td>总金额</td><td>&yen;{$purchase.total_amount}</td><td>总数量</td><td>{$purchase.total_goods_num}</td></tr>
             <tr><td>备注</td><td colspan="3">{$purchase.remark|default='-'}</td></tr>
-            <tr><td>进货时间</td><td colspan="3">{:date('Y-m-d H:i:s', $purchase.create_time)}</td></tr>
+            <tr><td>入库时间</td><td colspan="3">{:date('Y-m-d H:i:s', $purchase.create_time)}</td></tr>
         </table>
     </div>
 </div>
 
 <div class="layui-card" style="margin-top:15px;">
-    <div class="layui-card-header">进货明细</div>
+    <div class="layui-card-header">入库明细</div>
     <div class="layui-card-body">
         <table class="layui-table">
             <thead>

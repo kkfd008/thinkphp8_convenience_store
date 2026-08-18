@@ -1,0 +1,97 @@
+{extend name="layout" /}
+{block name="content"}
+<div class="search-form">
+    <div class="layui-inline">
+        <input type="text" id="search-keyword" placeholder="出库单号…" class="layui-input" value="{$keyword|default=''}">
+    </div>
+    <div class="layui-inline">
+        <select id="search-type">
+            <option value="">全部类型</option>
+            <option value="1" {if isset($type) && $type=='1'}selected{/if}>销售出库</option>
+            <option value="2" {if isset($type) && $type=='2'}selected{/if}>退货出库</option>
+        </select>
+    </div>
+    <div class="layui-inline">
+        <input type="text" id="search-start" placeholder="开始日期…" class="layui-input" value="{$start_date|default=''}">
+    </div>
+    <div class="layui-inline">
+        <input type="text" id="search-end" placeholder="结束日期…" class="layui-input" value="{$end_date|default=''}">
+    </div>
+    <div class="layui-inline">
+        <button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button>
+    </div>
+    <div class="layui-inline layui-right">
+        <a href="/outbound/add" class="layui-btn layui-btn-primary"><i class="layui-icon layui-icon-add-1"></i> 新建出库</a>
+        <button class="layui-btn layui-btn-primary" onclick="exportData()"><i class="layui-icon layui-icon-export"></i> 导出</button>
+    </div>
+</div>
+<table id="outbound-table" lay-filter="outboundTable"></table>
+
+<script type="text/html" id="toolbar">
+    <button class="layui-btn layui-btn-xs" lay-event="detail">查看明细</button>
+</script>
+{/block}
+
+{block name="script"}
+<script>
+layui.use(['table', 'laydate', 'form'], function(){
+    var table = layui.table;
+    layui.laydate.render({elem: '#search-start'});
+    layui.laydate.render({elem: '#search-end'});
+    layui.form.render('select');
+
+    table.render({
+        elem: '#outbound-table',
+        url: '/outbound/list',
+        where: {
+            keyword: '{$keyword|default=""}',
+            type: '{$type|default=""}',
+            start_date: '{$start_date|default=""}',
+            end_date: '{$end_date|default=""}'
+        },
+        cols: [[
+            {field: 'outbound_no', title: '出库单号', width: 170},
+            {field: 'type_text', title: '类型', width: 100},
+            {field: 'supplier_name', title: '供货商', width: 150},
+            {field: 'total_amount', title: '总金额', width: 100},
+            {field: 'total_goods_num', title: '总数量', width: 90},
+            {field: 'create_time', title: '出库时间', width: 170, templet: function(d){
+                return d.create_time ? new Date(d.create_time * 1000).toLocaleString() : '-';
+            }},
+            {title: '操作', toolbar: '#toolbar', width: 100}
+        ]],
+        page: {limits: [10, 20, 50, 100, 200]}
+    });
+
+    table.on('tool(outboundTable)', function(obj){
+        if (obj.event === 'detail') {
+            location.href = '/outbound/detail?id=' + obj.data.id;
+        }
+    });
+});
+
+window.doSearch = function(){
+    layui.table.reload('outbound-table', {
+        where: {
+            keyword: $('#search-keyword').val(),
+            type: $('#search-type').val(),
+            start_date: $('#search-start').val(),
+            end_date: $('#search-end').val()
+        }
+    });
+};
+
+window.exportData = function(){
+    var params = [];
+    var keyword = $('#search-keyword').val();
+    if (keyword) params.push('keyword=' + encodeURIComponent(keyword));
+    var type = $('#search-type').val();
+    if (type) params.push('type=' + type);
+    var start = $('#search-start').val();
+    if (start) params.push('start_date=' + start);
+    var end = $('#search-end').val();
+    if (end) params.push('end_date=' + end);
+    location.href = '/outbound/export' + (params.length > 0 ? '?' + params.join('&') : '');
+};
+</script>
+{/block}

@@ -59,6 +59,14 @@ Route::post('/purchase/importSheets', 'purchase/importSheets');
 Route::get('/purchase/downloadTemplate', 'purchase/downloadTemplate');
 Route::get('/purchase/export', 'purchase/export');
 
+Route::get('/outbound/index', 'outbound/index');
+Route::get('/outbound/list', 'outbound/list');
+Route::get('/outbound/add', 'outbound/add');
+Route::post('/outbound/doAdd', 'outbound/doAdd');
+Route::get('/outbound/detail', 'outbound/detail');
+Route::get('/outbound/searchGoods', 'outbound/searchGoods');
+Route::get('/outbound/export', 'outbound/export');
+
 Route::get('/stock/index', 'stock/index');
 Route::get('/stock/list', 'stock/list');
 Route::get('/stock/detail', 'stock/detail');

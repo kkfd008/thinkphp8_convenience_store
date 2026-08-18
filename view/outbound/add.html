@@ -1,0 +1,179 @@
+{extend name="layout" /}
+{block name="content"}
+<div class="layui-form" style="padding:20px;">
+    <div class="layui-inline" style="margin-bottom:10px;">
+        <label class="layui-form-label" style="width:80px;">出库类型</label>
+        <div class="layui-input-inline" style="width:200px;">
+            <select id="outbound-type" lay-filter="outboundType">
+                <option value="1">销售出库</option>
+                <option value="2">退货出库</option>
+            </select>
+        </div>
+    </div>
+    <div class="layui-inline" style="margin-bottom:10px;" id="supplier-row" style="display:none;">
+        <label class="layui-form-label" style="width:80px;">供货商</label>
+        <div class="layui-input-inline" style="width:200px;">
+            <select id="supplier-id">
+                <option value="">请选择</option>
+                {foreach $suppliers as $s}
+                <option value="{$s.id}">{$s.name}</option>
+                {/foreach}
+            </select>
+        </div>
+    </div>
+    <div class="layui-inline" style="margin-bottom:10px;">
+        <label class="layui-form-label" style="width:80px;">备注</label>
+        <div class="layui-input-inline" style="width:200px;">
+            <input type="text" id="remark" class="layui-input" placeholder="选填">
+        </div>
+    </div>
+</div>
+
+<div style="padding:0 20px;">
+    <div style="margin-bottom:10px;">
+        <div class="layui-inline">
+            <input type="text" id="search-goods" placeholder="搜索商品（名称/条码）…" class="layui-input" style="width:200px;">
+        </div>
+        <div class="layui-inline">
+            <button class="layui-btn layui-btn-sm" onclick="searchGoods()"><i class="layui-icon layui-icon-search"></i></button>
+        </div>
+        <div class="layui-inline layui-right">
+            <button class="layui-btn layui-btn-sm" onclick="submitOutbound()"><i class="layui-icon layui-icon-ok"></i> 提交出库单</button>
+        </div>
+    </div>
+    <table id="items-table" lay-filter="itemsTable"></table>
+</div>
+
+<script type="text/html" id="qtyTpl">
+    <input type="number" class="layui-input" value="{{d.quantity}}" style="width:80px;height:28px;" data-id="{{d.LAY_INDEX}}" onchange="updateQty({{d.LAY_INDEX}}, this.value)">
+</script>
+{/block}
+
+{block name="script"}
+<script>
+var items = [];
+var goodsList = [];
+
+layui.use(['table', 'form'], function(){
+    var form = layui.form;
+    form.render('select');
+
+    form.on('select(outboundType)', function(data){
+        $('#supplier-row').toggle(data.value == '2');
+    });
+
+    layui.table.render({
+        elem: '#items-table',
+        data: [],
+        cols: [[
+            {field: 'barcode', title: '条码', width: 130},
+            {field: 'goods_name', title: '商品名称', width: 150},
+            {field: 'unit', title: '单位', width: 60},
+            {field: 'purchase_price', title: '进货价', width: 80},
+            {field: 'retail_price', title: '零售价', width: 80},
+            {field: 'stock', title: '库存', width: 70},
+            {field: 'quantity', title: '出库数量', width: 110, templet: '#qtyTpl'},
+            {title: '操作', toolbar: '#delTpl', width: 60}
+        ]],
+        page: false
+    });
+});
+
+window.searchGoods = function(){
+    var keyword = $('#search-goods').val();
+    $.get('/outbound/searchGoods', {keyword: keyword}, function(res){
+        if (res.code === 0) {
+            goodsList = res.data;
+            var html = '';
+            goodsList.forEach(function(g, i){
+                html += '<tr data-idx="' + i + '" style="cursor:pointer;" onclick="addItem(' + i + ')">'
+                    + '<td>' + g.barcode + '</td>'
+                    + '<td>' + g.name + '</td>'
+                    + '<td>' + (g.unit || '') + '</td>'
+                    + '<td>' + g.purchase_price + '</td>'
+                    + '<td>' + g.retail_price + '</td>'
+                    + '<td>' + g.stock + '</td>'
+                    + '<td><span class="layui-btn layui-btn-xs">添加</span></td>'
+                    + '</tr>';
+            });
+            layer.open({
+                type: 1, title: '选择商品', area: ['700px', '400px'],
+                content: '<table class="layui-table" style="margin:0;"><thead><tr><th>条码</th><th>名称</th><th>单位</th><th>进货价</th><th>零售价</th><th>库存</th><th></th></tr></thead><tbody>' + (html || '<tr><td colspan="7">无匹配商品</td></tr>') + '</tbody></table>'
+            });
+        }
+    });
+};
+
+window.addItem = function(idx){
+    var g = goodsList[idx];
+    // 检查是否已添加
+    for (var i = 0; i < items.length; i++) {
+        if (items[i].barcode === g.barcode) {
+            layer.msg('该商品已添加', {icon:2});
+            return;
+        }
+    }
+    items.push({
+        barcode: g.barcode,
+        goods_name: g.name,
+        unit: g.unit || '',
+        purchase_price: g.purchase_price,
+        retail_price: g.retail_price,
+        stock: g.stock,
+        quantity: 1
+    });
+    layui.table.reload('items-table', {data: items});
+    layer.closeAll();
+};
+
+window.updateQty = function(idx, val){
+    var qty = parseInt(val) || 0;
+    if (qty <= 0) { layer.msg('数量必须大于0'); return; }
+    if (items[idx] && qty > items[idx].stock) {
+        layer.msg('不能超过库存（' + items[idx].stock + '）');
+        return;
+    }
+    if (items[idx]) items[idx].quantity = qty;
+};
+
+window.submitOutbound = function(){
+    if (items.length === 0) {
+        layer.msg('请添加出库商品', {icon:2});
+        return;
+    }
+    var type = $('#outbound-type').val();
+    if (type == '2') {
+        var supplierId = $('#supplier-id').val();
+        if (!supplierId) {
+            layer.msg('退货出库请选择供货商', {icon:2});
+            return;
+        }
+    }
+
+    var postData = {
+        type: type,
+        supplier_id: $('#supplier-id').val(),
+        remark: $('#remark').val(),
+        items: JSON.stringify(items)
+    };
+    $.post('/outbound/doAdd', postData, function(res){
+        if (res.code === 0) {
+            layer.msg(res.msg, {icon:1}, function(){
+                location.href = '/outbound/index';
+            });
+        } else {
+            layer.msg(res.msg, {icon:2});
+        }
+    });
+};
+</script>
+<script type="text/html" id="delTpl">
+    <button class="layui-btn layui-btn-xs layui-btn-danger" onclick="delItem({{d.LAY_INDEX}})">删除</button>
+</script>
+<script>
+window.delItem = function(idx){
+    items.splice(idx, 1);
+    layui.table.reload('items-table', {data: items});
+};
+</script>
+{/block}

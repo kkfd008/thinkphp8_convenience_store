@@ -114,8 +114,14 @@ class Stock extends BaseController
 
         $inflows = Db::name('purchase_detail')->alias('pd')
             ->leftJoin('purchase p', 'pd.purchase_id = p.id')
-            ->field('pd.create_time, pd.barcode, pd.goods_name, "进货" as type, (pd.box_spec * pd.box_count + pd.piece_count) as qty_change, p.purchase_no as ref_no')
+            ->field('pd.create_time, pd.barcode, pd.goods_name, "入库" as type, (pd.box_spec * pd.box_count + pd.piece_count) as qty_change, p.purchase_no as ref_no')
             ->where('pd.barcode', $barcode)
+            ->select()->toArray();
+
+        $outboundFlows = Db::name('outbound_detail')->alias('od')
+            ->leftJoin('outbound o', 'od.outbound_id = o.id')
+            ->field('od.create_time, od.barcode, od.goods_name, CASE WHEN o.type=1 THEN "销售出库" ELSE "退货出库" END as type, -od.quantity as qty_change, o.outbound_no as ref_no')
+            ->where('od.barcode', $barcode)
             ->select()->toArray();
 
         $outflows = Db::name('order_detail')->alias('od')
@@ -124,7 +130,7 @@ class Stock extends BaseController
             ->where('od.barcode', $barcode)
             ->select()->toArray();
 
-        $rows = array_merge($inflows, $outflows);
+        $rows = array_merge($inflows, $outboundFlows, $outflows);
         usort($rows, function ($a, $b) {
             return $a['create_time'] - $b['create_time'];
         });

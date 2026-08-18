@@ -88,7 +88,7 @@ class Purchase extends BaseController
             return $this->jsonError('请选择供货商');
         }
         if (empty($items) || !is_array($items)) {
-            return $this->jsonError('请添加进货明细');
+            return $this->jsonError('请添加入库明细');
         }
 
         $totalAmount   = 0;
@@ -171,7 +171,7 @@ class Purchase extends BaseController
             }
 
             Db::commit();
-            return $this->jsonSuccess(['purchase_no' => $purchaseNo], '进货单创建成功');
+            return $this->jsonSuccess(['purchase_no' => $purchaseNo], '入库单创建成功');
         } catch (\Exception $e) {
             Db::rollback();
             return $this->jsonError('操作失败：' . $e->getMessage());
@@ -360,13 +360,13 @@ class Purchase extends BaseController
             'items'   => $successItems,
             'fail'    => count($failList),
             'details' => $failList,
-        ], "导入完成：{$successOrders}张进货单，{$successItems}种商品");
+        ], "导入完成：{$successOrders}张入库单，{$successItems}种商品");
     }
 
     public function downloadTemplate()
     {
         $headers = ['供货商名称', '商品条码', '商品名称', '单位', '进货价', '零售价', '箱规', '箱数', '散件数量'];
-        $this->downloadExcel($headers, [], '进货导入模板');
+        $this->downloadExcel($headers, [], '入库导入模板');
     }
 
     public function importSheets()
@@ -571,7 +571,7 @@ class Purchase extends BaseController
             'orders' => $totalOrders,
             'items'  => $totalItems,
             'log'    => $log,
-        ], "导入完成：{$totalOrders}张进货单，{$totalItems}种商品");
+        ], "导入完成：{$totalOrders}张入库单，{$totalItems}种商品");
     }
 
     public function export()
@@ -600,7 +600,7 @@ class Purchase extends BaseController
 
         $list = $query->order('p.id desc')->select()->toArray();
 
-        $headers = ['进货单号', '供货商', '总金额', '总数量', '操作员ID', '备注', '时间'];
+        $headers = ['入库单号', '供货商', '总金额', '总数量', '操作员ID', '备注', '时间'];
         $data = [];
         foreach ($list as $row) {
             $data[] = [
@@ -610,7 +610,7 @@ class Purchase extends BaseController
                 date('Y-m-d H:i:s', $row['create_time']),
             ];
         }
-        return $this->downloadExcel($headers, $data, '进货单列表');
+        return $this->downloadExcel($headers, $data, '入库单列表');
     }
 
 }
