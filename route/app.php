@@ -73,10 +73,15 @@ Route::get('/stock/index', 'stock/index');
 Route::get('/stock/list', 'stock/list');
 Route::get('/stock/detail', 'stock/detail');
 Route::post('/stock/updateThreshold', 'stock/updateThreshold');
+Route::post('/stock/batchThreshold', 'stock/batchThreshold');
+Route::post('/stock/adjust', 'stock/adjust');
 Route::get('/stock/warning', 'stock/warning');
 Route::get('/stock/warningExport', 'stock/warningExport');
 Route::get('/stock/export', 'stock/export');
 Route::post('/stock/generatePurchase', 'stock/generatePurchase');
+Route::get('/stock/flow', 'stock/flow');
+Route::get('/stock/flowList', 'stock/flowList');
+Route::get('/stock/reports', 'stock/reports');
 
 Route::get('/stock_check/index', 'stockCheck/index');
 Route::get('/stock_check/list', 'stockCheck/list');

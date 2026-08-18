@@ -1,0 +1,78 @@
+{extend name="layout" /}
+{block name="content"}
+<div class="search-form">
+    <div class="layui-inline"><input type="text" id="search-keyword" placeholder="条码/商品名称…" class="layui-input" value="{$keyword|default=''}"></div>
+    <div class="layui-inline">
+        <select id="search-type">
+            <option value="">全部类型</option>
+            <option value="入库" {if isset($type) && $type==='入库'}selected{/if}>入库</option>
+            <option value="销售" {if isset($type) && $type==='销售'}selected{/if}>销售</option>
+            <option value="销售出库" {if isset($type) && $type==='销售出库'}selected{/if}>销售出库</option>
+            <option value="退货出库" {if isset($type) && $type==='退货出库'}selected{/if}>退货出库</option>
+            <option value="库存修正" {if isset($type) && $type==='库存修正'}selected{/if}>库存修正</option>
+            <option value="损耗报损" {if isset($type) && $type==='损耗报损'}selected{/if}>损耗报损</option>
+            <option value="过期处理" {if isset($type) && $type==='过期处理'}selected{/if}>过期处理</option>
+            <option value="盘点调整" {if isset($type) && $type==='盘点调整'}selected{/if}>盘点调整</option>
+        </select>
+    </div>
+    <div class="layui-inline">
+        <input type="date" id="search-date-begin" value="{$dateBegin|default=''}" class="layui-input" style="width:150px;" placeholder="开始日期">
+    </div>
+    <div class="layui-inline">
+        <input type="date" id="search-date-end" value="{$dateEnd|default=''}" class="layui-input" style="width:150px;" placeholder="结束日期">
+    </div>
+    <div class="layui-inline"><button class="layui-btn layui-btn-primary" onclick="doSearch()"><i class="layui-icon layui-icon-search"></i> 搜索</button></div>
+</div>
+<table id="flow-table" lay-filter="flowTable"></table>
+{/block}
+
+{block name="script"}
+<script>
+layui.use(['table', 'form'], function(){
+    var table = layui.table;
+    layui.form.render('select');
+    table.render({
+        elem: '#flow-table',
+        url: '/stock/flowList',
+        where: {
+            keyword: '{$keyword|default=""}',
+            type: '{$type|default=""}',
+            date_begin: '{$dateBegin|default=""}',
+            date_end: '{$dateEnd|default=""}'
+        },
+        cols: [[
+            {field: 'id', title: 'ID', width: 60},
+            {field: 'barcode', title: '条码', width: 120},
+            {field: 'goods_name', title: '商品名称', width: 140},
+            {field: 'type', title: '操作类型', width: 100, templet: function(d){
+                var cls = d.qty_change > 0 ? 'color:#009688;' : 'color:#FF5722;';
+                return '<span style="' + cls + 'font-weight:bold;">' + d.type + '</span>';
+            }},
+            {field: 'qty_change', title: '变动数量', width: 90, templet: function(d){
+                var sign = d.qty_change > 0 ? '+' + d.qty_change : d.qty_change;
+                var cls = d.qty_change > 0 ? 'color:#009688;' : 'color:#FF5722;';
+                return '<span style="' + cls + 'font-weight:bold;">' + sign + '</span>';
+            }},
+            {field: 'balance', title: '库存余额', width: 90},
+            {field: 'ref_no', title: '关联单号', width: 150, templet: function(d){ return d.ref_no || '-'; }},
+            {field: 'remark', title: '备注', width: 120},
+            {field: 'create_time', title: '操作时间', width: 160, templet: function(d){
+                return d.create_time ? new Date(d.create_time * 1000).toLocaleString() : '-';
+            }}
+        ]],
+        page: {limits: [10, 20, 50, 100]}
+    });
+});
+
+window.doSearch = function(){
+    layui.table.reload('flow-table', {
+        where: {
+            keyword: $('#search-keyword').val(),
+            type: $('#search-type').val(),
+            date_begin: $('#search-date-begin').val(),
+            date_end: $('#search-date-end').val()
+        }
+    });
+};
+</script>
+{/block}

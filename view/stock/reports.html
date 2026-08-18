@@ -1,0 +1,119 @@
+{extend name="layout" /}
+{block name="content"}
+<!-- KPI 卡片 -->
+<div style="display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap;">
+    <div class="stat-card" style="flex:1;min-width:140px;background:#f0f9ff;padding:15px;border-radius:6px;text-align:center;">
+        <div style="font-size:24px;color:#1e9fff;font-weight:bold;">{$totalGoods}</div>
+        <div style="color:#666;margin-top:5px;">商品种类</div>
+    </div>
+    <div class="stat-card" style="flex:1;min-width:140px;background:#f0fdf4;padding:15px;border-radius:6px;text-align:center;">
+        <div style="font-size:24px;color:#16a34a;font-weight:bold;">{$totalStock}</div>
+        <div style="color:#666;margin-top:5px;">库存总量</div>
+    </div>
+    <div class="stat-card" style="flex:1;min-width:140px;background:#eef2ff;padding:15px;border-radius:6px;text-align:center;">
+        <div style="font-size:24px;color:#4f46e5;font-weight:bold;">&yen;{:number_format($totalValue, 2)}</div>
+        <div style="color:#666;margin-top:5px;">库存金额</div>
+    </div>
+    <div class="stat-card" style="flex:1;min-width:140px;background:#fef2f2;padding:15px;border-radius:6px;text-align:center;">
+        <div style="font-size:24px;color:#dc2626;font-weight:bold;">{$lowStockCount}</div>
+        <div style="color:#666;margin-top:5px;">低库存预警</div>
+    </div>
+    <div class="stat-card" style="flex:1;min-width:140px;background:#fefce8;padding:15px;border-radius:6px;text-align:center;">
+        <div style="font-size:24px;color:#ca8a04;font-weight:bold;">{$expiryCount}</div>
+        <div style="color:#666;margin-top:5px;">临期预警</div>
+    </div>
+    <div class="stat-card" style="flex:1;min-width:140px;background:#f0f9ff;padding:15px;border-radius:6px;text-align:center;">
+        <div style="font-size:18px;color:#1e9fff;font-weight:bold;">+{$recentInflow}</div>
+        <div style="color:#666;margin-top:5px;">近30天入库</div>
+    </div>
+    <div class="stat-card" style="flex:1;min-width:140px;background:#fef2f2;padding:15px;border-radius:6px;text-align:center;">
+        <div style="font-size:18px;color:#dc2626;font-weight:bold;">-{$recentOutflow}</div>
+        <div style="color:#666;margin-top:5px;">近30天出库</div>
+    </div>
+</div>
+
+<div style="display:flex;gap:15px;flex-wrap:wrap;">
+    <!-- 分类库存金额 -->
+    <div style="flex:1;min-width:400px;">
+        <div class="layui-card">
+            <div class="layui-card-header">分类库存金额</div>
+            <div class="layui-card-body">
+                <table class="layui-table" style="margin:0;">
+                    <thead>
+                        <tr><th>分类</th><th>商品数</th><th>库存量</th><th>库存金额</th></tr>
+                    </thead>
+                    <tbody>
+                        {if count($cateStats) > 0}
+                        {foreach $cateStats as $c}
+                        <tr>
+                            <td>{$c['cate']}</td>
+                            <td>{$c['goods_count']}</td>
+                            <td>{$c['total_stock']}</td>
+                            <td style="color:#4f46e5;">&yen;{:number_format($c['total_value'], 2)}</td>
+                        </tr>
+                        {/foreach}
+                        {else}
+                        <tr><td colspan="4" style="text-align:center;color:#999;">暂无数据</td></tr>
+                        {/if}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 供货商库存金额 -->
+    <div style="flex:1;min-width:400px;">
+        <div class="layui-card">
+            <div class="layui-card-header">供货商库存金额</div>
+            <div class="layui-card-body">
+                <table class="layui-table" style="margin:0;">
+                    <thead>
+                        <tr><th>供货商</th><th>商品数</th><th>库存量</th><th>库存金额</th></tr>
+                    </thead>
+                    <tbody>
+                        {if count($supplierStats) > 0}
+                        {foreach $supplierStats as $s}
+                        <tr>
+                            <td>{$s['supplier_name']}</td>
+                            <td>{$s['goods_count']}</td>
+                            <td>{$s['total_stock']}</td>
+                            <td style="color:#4f46e5;">&yen;{:number_format($s['total_value'], 2)}</td>
+                        </tr>
+                        {/foreach}
+                        {else}
+                        <tr><td colspan="4" style="text-align:center;color:#999;">暂无数据</td></tr>
+                        {/if}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 库龄分析 -->
+<div style="margin-top:15px;">
+    <div class="layui-card">
+        <div class="layui-card-header">库龄分析（按商品创建时间）</div>
+        <div class="layui-card-body">
+            <div style="display:flex;gap:15px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:150px;background:#f0fdf4;padding:12px;border-radius:6px;text-align:center;">
+                    <div style="font-size:22px;color:#16a34a;font-weight:bold;">{$agingStats.within_7d}</div>
+                    <div style="color:#666;font-size:12px;">7天内新增</div>
+                </div>
+                <div style="flex:1;min-width:150px;background:#f0f9ff;padding:12px;border-radius:6px;text-align:center;">
+                    <div style="font-size:22px;color:#1e9fff;font-weight:bold;">{$agingStats.within_30d}</div>
+                    <div style="color:#666;font-size:12px;">8-30天新增</div>
+                </div>
+                <div style="flex:1;min-width:150px;background:#fefce8;padding:12px;border-radius:6px;text-align:center;">
+                    <div style="font-size:22px;color:#ca8a04;font-weight:bold;">{$agingStats.within_90d}</div>
+                    <div style="color:#666;font-size:12px;">31-90天新增</div>
+                </div>
+                <div style="flex:1;min-width:150px;background:#fef2f2;padding:12px;border-radius:6px;text-align:center;">
+                    <div style="font-size:22px;color:#dc2626;font-weight:bold;">{$agingStats.over_90d}</div>
+                    <div style="color:#666;font-size:12px;">90天以上</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{/block}
